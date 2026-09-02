@@ -127,11 +127,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The default docker driver can't export a build cache; the
+      # docker-container driver buildx sets up here can, which is what
+      # lets cache-to/cache-from below actually persist anything.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # GitHub Actions cache backend, scoped per image so the backend and
+      # frontend builds don't evict each other. Unchanged layers (base
+      # image pulls, npm install) get reused instead of rebuilt on every
+      # push — only layers after an actual code/dependency change re-run.
       - name: Build backend image
         uses: docker/build-push-action@v6
         with:
           context: ./backend
           push: false
+          cache-from: type=gha,scope=docker-backend
+          cache-to: type=gha,scope=docker-backend,mode=max
 
       - name: Build frontend image
         uses: docker/build-push-action@v6
@@ -140,3 +152,5 @@ jobs:
           push: false
           build-args: |
             VITE_API_URL=http://localhost:4000/api
+          cache-from: type=gha,scope=docker-frontend
+          cache-to: type=gha,scope=docker-frontend,mode=max
