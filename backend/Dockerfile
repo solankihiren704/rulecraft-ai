@@ -1,6 +1,20 @@
 # RuleCraft AI backend — production image
+#
+# `prisma generate` only reads schema.prisma and emits client code — it
+# never opens a connection — but prisma.config.ts (Prisma 7's config
+# system) resolves DATABASE_URL eagerly via env(), for every CLI command
+# including `generate`, before it even gets that far. Real credentials are
+# never baked into the image (docker-compose.yml supplies the real
+# DATABASE_URL at container *runtime*, via `environment:`) — `docker build`
+# never sees that. Both `db:generate` calls below are BUILD steps, so each
+# needs its own placeholder value, just to satisfy that eager resolution;
+# nothing ever connects to it. Found by CI actually building this image on
+# GitHub's infrastructure — untestable locally without Docker.
 FROM node:22-alpine AS build
 WORKDIR /app
+# ARG, not ENV — build-stage-only, discarded with this whole stage; never
+# risks shadowing the real DATABASE_URL docker-compose sets at runtime.
+ARG DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
 COPY package*.json ./
 COPY prisma ./prisma
 RUN npm install
@@ -10,6 +24,11 @@ RUN npm run db:generate && npm run build
 FROM node:22-alpine
 WORKDIR /app
 ENV NODE_ENV=production
+# Same reasoning as above — ARG here specifically (not ENV) so this
+# placeholder never persists into the shipped image's runtime environment
+# and can't shadow the real DATABASE_URL docker-compose provides when the
+# container actually starts.
+ARG DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
 COPY package*.json ./
 COPY prisma ./prisma
 RUN npm install --omit=dev
