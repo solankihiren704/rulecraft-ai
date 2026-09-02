@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useFieldArray, useForm } from 'react-hook-form'
+import { Controller, useFieldArray, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { AlertCircle, GitBranch, Plus, Search, Edit2, Trash2, X, Loader2 } from 'lucide-react'
+import { AlertCircle, ArrowRight, GitBranch, Plus, Search, Edit2, Trash2, X, Loader2 } from 'lucide-react'
 import { useToast } from '@/contexts/ToastContext'
 import { useAuth } from '@/contexts/AuthContext'
 import Modal from '@/components/ui/Modal'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import EmptyState from '@/components/ui/EmptyState'
 import FormField, { inputClassName } from '@/components/ui/FormField'
+import ToggleSwitch from '@/components/ui/ToggleSwitch'
 import * as rulesApi from '@/api/rules'
 import * as regulationsApi from '@/api/regulations'
 import { ApiRequestError } from '@/api/client'
@@ -32,6 +33,15 @@ const operators = [
   { id: 'eq', label: '= (equals)' },
   { id: 'neq', label: '!= (not equal)' },
 ]
+
+const operatorSymbols: Record<string, string> = {
+  gte: '≥',
+  lte: '≤',
+  gt: '>',
+  lt: '<',
+  eq: '=',
+  neq: '≠',
+}
 
 const conditionSchema = z.object({
   field: z.string().min(1, 'Field is required.'),
@@ -272,24 +282,31 @@ export default function RuleEnginePage() {
                     </span>
                   </div>
                   <p className="text-xs text-[#94a3b8]">{regulationName(rule.regulationId)}</p>
-                  <p className="mt-2 text-xs text-[#475569]">
-                    <span className="font-mono">
-                      {rule.conditions.map((c) => `${c.field} ${operators.find((o) => o.id === c.operator)?.id ?? c.operator} ${c.value}`).join('  AND  ')}
-                    </span>{' '}
-                    → {rule.outcome}
-                  </p>
+                  <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                    {rule.conditions.map((c, i) => (
+                      <span key={c.id ?? i} className="flex items-center gap-1.5">
+                        {i > 0 && <span className="text-[9px] font-bold uppercase tracking-wide text-[#94a3b8]">and</span>}
+                        <span className="inline-flex items-center gap-1 rounded-md border border-[#e2e8f0] bg-[#f8fafc] px-2 py-1 font-mono text-[11px]">
+                          <span className="text-[#334155]">{c.field}</span>
+                          <span className="font-bold text-[#4f46e5]">{operatorSymbols[c.operator] ?? c.operator}</span>
+                          <span className="font-semibold text-[#0f172a]">{c.value}</span>
+                        </span>
+                      </span>
+                    ))}
+                    <ArrowRight size={12} className="mx-0.5 shrink-0 text-[#94a3b8]" />
+                    <span className="inline-flex items-center rounded-md bg-[#0f172a] px-2 py-1 text-[11px] font-semibold text-white">
+                      {rule.outcome}
+                    </span>
+                  </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-3">
-                  <label className={`flex items-center gap-2 text-[11px] font-semibold text-[#64748b] ${canManage ? 'cursor-pointer' : 'cursor-default'}`}>
-                    <input
-                      type="checkbox"
-                      checked={rule.active}
-                      disabled={!canManage}
-                      onChange={() => toggleActive(rule)}
-                      className="h-4 w-4 accent-[#16a34a] disabled:opacity-50"
-                    />
-                    {rule.active ? 'Active' : 'Inactive'}
-                  </label>
+                  <ToggleSwitch
+                    checked={rule.active}
+                    disabled={!canManage}
+                    onChange={() => toggleActive(rule)}
+                    label={rule.active ? 'Active' : 'Inactive'}
+                    ariaLabel={`${rule.active ? 'Deactivate' : 'Activate'} ${rule.name}`}
+                  />
                   {canManage && (
                     <>
                       <button onClick={() => openEdit(rule)} className="rounded p-1 text-[#475569] hover:bg-[#e2e8f0]" aria-label={`Edit ${rule.name}`}>
@@ -377,10 +394,15 @@ export default function RuleEnginePage() {
             <input id="rule-outcome" className={inputClassName} {...register('outcome')} />
           </FormField>
 
-          <label className="mb-4 flex items-center gap-2 text-xs font-semibold text-[#475569]">
-            <input type="checkbox" className="h-4 w-4 accent-[#16a34a]" {...register('active')} />
-            Active immediately
-          </label>
+          <Controller
+            control={control}
+            name="active"
+            render={({ field }) => (
+              <div className="mb-4">
+                <ToggleSwitch checked={field.value} onChange={() => field.onChange(!field.value)} label="Active immediately" />
+              </div>
+            )}
+          />
 
           <div className="mt-2 flex justify-end gap-3">
             <button type="button" onClick={() => setModalOpen(false)} className="rounded-lg border border-[#e2e8f0] px-4 py-2 text-xs font-semibold text-[#475569] hover:bg-[#f1f5f9]">

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { AlertCircle, Plus, Search, Download, Upload, FileSpreadsheet, Eye, Edit2, Trash2, Loader2, CheckCircle2, XCircle } from 'lucide-react'
+import { AlertCircle, Plus, Search, Download, Upload, FileSpreadsheet, Eye, Edit2, Trash2, Loader2, CheckCircle2, XCircle, GraduationCap, UserCheck, Award } from 'lucide-react'
 import { useToast } from '@/contexts/ToastContext'
 import { useAuth } from '@/contexts/AuthContext'
 import Modal from '@/components/ui/Modal'
@@ -413,18 +413,24 @@ export default function StudentsPage() {
       </div>
 
       <div className="mb-6 grid gap-3 sm:grid-cols-3">
-        <div className="border border-[#e2e8f0] bg-[#ffffff] p-4">
-          <p className="text-xs font-semibold text-[#64748b]">Total Students</p>
+        <div className="border border-[#e0e7ff] bg-[#eef2ff] p-4">
+          <p className="flex items-center gap-1.5 text-xs font-semibold text-[#475569]">
+            <GraduationCap size={14} className="text-[#4f46e5]" /> Total Students
+          </p>
           <p className="mt-2 font-display text-2xl font-bold text-[#0f172a]">{students.length}</p>
         </div>
-        <div className="border border-[#e2e8f0] bg-[#ffffff] p-4">
-          <p className="text-xs font-semibold text-[#64748b]">Active</p>
+        <div className="border border-[#dcfce7] bg-[#f0fdf4] p-4">
+          <p className="flex items-center gap-1.5 text-xs font-semibold text-[#475569]">
+            <UserCheck size={14} className="text-[#16a34a]" /> Active
+          </p>
           <p className="mt-2 font-display text-2xl font-bold text-[#16a34a]">
             {students.filter((s) => s.status === 'active').length}
           </p>
         </div>
-        <div className="border border-[#e2e8f0] bg-[#ffffff] p-4">
-          <p className="text-xs font-semibold text-[#64748b]">Avg. GPA</p>
+        <div className="border border-[#fef3c7] bg-[#fffbeb] p-4">
+          <p className="flex items-center gap-1.5 text-xs font-semibold text-[#475569]">
+            <Award size={14} className="text-[#d97706]" /> Avg. GPA
+          </p>
           <p className="mt-2 font-display text-2xl font-bold text-[#0f172a]">{avgGpa}</p>
         </div>
       </div>

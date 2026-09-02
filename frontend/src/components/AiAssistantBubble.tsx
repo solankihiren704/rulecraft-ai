@@ -72,7 +72,7 @@ export default function AiAssistantBubble() {
           role="dialog"
           aria-modal="true"
           aria-label="RuleCraft AI assistant"
-          className="fixed bottom-24 right-5 z-50 flex h-[min(560px,calc(100vh-140px))] w-[min(380px,calc(100vw-40px))] flex-col overflow-hidden rounded-2xl border border-[#e2e8f0] bg-[#ffffff] shadow-2xl"
+          className="fixed bottom-24 right-5 z-50 flex h-[min(560px,calc(100vh-140px))] w-[min(380px,calc(100vw-40px))] flex-col overflow-hidden rounded-2xl border border-[#e2e8f0] bg-[#ffffff] shadow-[0_25px_50px_-8px_rgba(15,23,42,0.5),0_10px_20px_-6px_rgba(15,23,42,0.35)]"
         >
           <div className="flex items-center justify-between border-b border-[#e2e8f0] bg-[#0f172a] px-4 py-3.5 text-white">
             <div className="flex items-center gap-2">
