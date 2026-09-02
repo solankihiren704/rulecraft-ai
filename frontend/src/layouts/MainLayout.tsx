@@ -11,7 +11,6 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
-  MoreHorizontal,
   Search,
   Settings2,
   Users,
@@ -169,9 +168,9 @@ export default function MainLayout() {
               </button>
             ))}
           </nav>
-          <div className="px-6 pb-7">
-            {canAdminister && (
-              <div className="mb-6 border-t border-[#1e293b] pt-5">
+          {canAdminister && (
+            <div className="px-6 pb-7">
+              <div className="border-t border-[#1e293b] pt-5">
                 <button
                   onClick={() => selectNavigation('/users')}
                   className="flex items-center gap-3 py-2 text-[13px] text-[#94a3b8] hover:text-white"
@@ -179,46 +178,8 @@ export default function MainLayout() {
                   <Settings2 size={17} /> Administration
                 </button>
               </div>
-            )}
-            <div className="relative">
-              <button
-                onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="flex w-full items-center gap-3"
-                aria-haspopup="menu"
-                aria-expanded={userMenuOpen}
-              >
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f59e0b] text-sm font-bold text-[#1e293b]">
-                  {user?.avatarInitials ?? '—'}
-                </div>
-                <div className="min-w-0 text-left">
-                  <p className="truncate text-[13px] font-semibold">{user?.name ?? 'Guest'}</p>
-                  <p className="truncate text-[11px] capitalize text-[#94a3b8]">
-                    {user?.role.replace('_', ' ') ?? ''}
-                  </p>
-                </div>
-                <MoreHorizontal size={17} className="ml-auto text-[#94a3b8]" />
-              </button>
-              {userMenuOpen && (
-                <div className="absolute bottom-14 left-0 z-20 w-48 border border-[#e2e8f0] bg-[#ffffff] p-2 text-xs shadow-lg">
-                  <button
-                    onClick={() => {
-                      setUserMenuOpen(false)
-                      setProfileOpen(true)
-                    }}
-                    className="w-full px-3 py-2 text-left text-[#475569] hover:bg-[#f1f5f9]"
-                  >
-                    View profile
-                  </button>
-                  <button
-                    onClick={handleLogout}
-                    className="w-full px-3 py-2 text-left text-[#4f46e5] hover:bg-[#f1f5f9]"
-                  >
-                    <LogOut size={13} className="mr-2 inline" /> Logout
-                  </button>
-                </div>
-              )}
             </div>
-          </div>
+          )}
         </aside>
 
         {/* Main Content */}
@@ -324,6 +285,45 @@ export default function MainLayout() {
                       className="w-full px-3 py-2 text-left text-[#64748b] hover:bg-[#f1f5f9]"
                     >
                       Southbank Institute
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="hidden h-7 w-px bg-[#e2e8f0] sm:block" />
+              <div className="relative">
+                <button
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="flex items-center gap-2.5"
+                  aria-haspopup="menu"
+                  aria-expanded={userMenuOpen}
+                >
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#f59e0b] text-xs font-bold text-[#1e293b]">
+                    {user?.avatarInitials ?? '—'}
+                  </div>
+                  <div className="hidden text-left sm:block">
+                    <p className="truncate text-[13px] font-semibold leading-tight text-[#0f172a]">{user?.name ?? 'Guest'}</p>
+                    <p className="truncate text-[10px] capitalize leading-tight text-[#94a3b8]">
+                      {user?.role.replace('_', ' ') ?? ''}
+                    </p>
+                  </div>
+                  <ChevronDown size={14} className="hidden text-[#64748b] sm:block" />
+                </button>
+                {userMenuOpen && (
+                  <div className="absolute right-0 top-11 z-20 w-48 border border-[#e2e8f0] bg-[#ffffff] p-2 text-xs shadow-lg">
+                    <button
+                      onClick={() => {
+                        setUserMenuOpen(false)
+                        setProfileOpen(true)
+                      }}
+                      className="w-full px-3 py-2 text-left text-[#475569] hover:bg-[#f1f5f9]"
+                    >
+                      View profile
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full px-3 py-2 text-left text-[#dc2626] hover:bg-[#fee2e2]"
+                    >
+                      <LogOut size={13} className="mr-2 inline" /> Logout
                     </button>
                   </div>
                 )}
