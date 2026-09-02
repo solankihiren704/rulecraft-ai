@@ -3,7 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useState } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
-import { GitBranch, Loader2, AlertCircle } from 'lucide-react'
+import { GitBranch, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import FormField, { inputClassName, inputErrorClassName } from '@/components/ui/FormField'
 
@@ -27,6 +27,7 @@ export default function LoginPage() {
   const { login, isAuthenticated } = useAuth()
   const location = useLocation()
   const [serverError, setServerError] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const {
     register,
     handleSubmit,
@@ -89,14 +90,26 @@ export default function LoginPage() {
           </FormField>
 
           <FormField label="Password" htmlFor="password" error={errors.password?.message} required>
-            <input
-              id="password"
-              type="password"
-              autoComplete="current-password"
-              placeholder="••••••••"
-              className={errors.password ? inputErrorClassName : inputClassName}
-              {...register('password')}
-            />
+            <div className="relative">
+              <input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                placeholder="••••••••"
+                className={`${errors.password ? inputErrorClassName : inputClassName} pr-10`}
+                {...register('password')}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-pressed={showPassword}
+                tabIndex={-1}
+                className="absolute inset-y-0 right-0 flex items-center px-3 text-[#94a3b8] hover:text-[#475569]"
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
           </FormField>
 
           <button
