@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build output
+dist/
+build/
+**/dist/
+**/build/
+
+# Environment
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Prisma
+backend/prisma/dev.db
+backend/prisma/*.db
+
+# Local dev database (embedded-postgres) and generated report files
+backend/.local-pgdata/
+backend/storage/
+
+# Logs
+*.log
+npm-debug.log*
+logs/
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage/
+playwright-report/
+test-results/
+
+# Misc
+*.tsbuildinfo
+.eslintcache

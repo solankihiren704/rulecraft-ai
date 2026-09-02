@@ -1,0 +1,142 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel superseded runs on the same branch/PR instead of letting them
+# queue up and burn minutes on code that's already been replaced.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  backend:
+    name: Backend (type-check, lint, test, build)
+    runs-on: ubuntu-latest
+
+    # Real Postgres, not a stub — env.ts fails fast on a malformed
+    # DATABASE_URL even for tests that never issue a query (see
+    # tests/health.test.ts, which imports the full app), and this keeps
+    # the door open for future tests that do hit the database for real.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: rulecraft
+          POSTGRES_PASSWORD: rulecraft
+          POSTGRES_DB: rulecraft_ai_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U rulecraft -d rulecraft_ai_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://rulecraft:rulecraft@localhost:5432/rulecraft_ai_test?schema=public
+      JWT_SECRET: ci-only-placeholder-secret-not-for-production-use-000000
+      JWT_REFRESH_SECRET: ci-only-placeholder-refresh-secret-not-for-prod-000000
+      FRONTEND_URL: http://localhost:5173
+      STORAGE_DRIVER: local
+      STORAGE_LOCAL_PATH: ./storage
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      # Installs both workspaces from the root lockfile in one shot — same
+      # as local dev (see README's Installation section).
+      - name: Install dependencies
+        run: npm ci
+
+      # The generated Prisma client's types are what tsc/type-check and
+      # build actually compile against — without this, both fail on
+      # "Cannot find module '@prisma/client'"-adjacent errors.
+      - name: Generate Prisma client
+        working-directory: backend
+        run: npm run db:generate
+
+      - name: Type-check
+        working-directory: backend
+        run: npx tsc --noEmit -p .
+
+      - name: Lint
+        working-directory: backend
+        run: npm run lint
+
+      - name: Apply migrations to the CI database
+        working-directory: backend
+        run: npx prisma migrate deploy
+
+      - name: Test
+        working-directory: backend
+        run: npm run test
+
+      - name: Build
+        working-directory: backend
+        run: npm run build
+
+  frontend:
+    name: Frontend (type-check, test, build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Deliberately NOT `tsc --noEmit -p .` — the frontend's root
+      # tsconfig.json only declares project references with an empty
+      # `files` list, so that invocation silently checks nothing and
+      # always exits 0 regardless of real errors (see README's Testing
+      # section, and docs/architecture/roadmap.md). `-b` is the command
+      # that actually type-checks tsconfig.app.json + tsconfig.node.json.
+      - name: Type-check
+        working-directory: frontend
+        run: npx tsc -b
+
+      - name: Test
+        working-directory: frontend
+        run: npm run test
+
+      - name: Build
+        working-directory: frontend
+        run: npm run build
+
+  docker:
+    name: Docker image build verification
+    runs-on: ubuntu-latest
+    # Independent of the backend/frontend jobs above — a Docker build
+    # failure is informative on its own and shouldn't wait on them.
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: false
+
+      - name: Build frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          push: false
+          build-args: |
+            VITE_API_URL=http://localhost:4000/api

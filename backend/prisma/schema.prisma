@@ -1,0 +1,423 @@
+// RuleCraft AI — Prisma schema (Phase 2)
+//
+// Enum values are deliberately lowercase/snake_case, matching the string
+// unions already in frontend/src/types/index.ts (Role, RuleType, etc.)
+// character-for-character. That means the Prisma client returns values the
+// frontend can consume with zero translation layer — the whole point of
+// "keep API contracts compatible with the existing frontend types."
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Prisma 7: the connection URL is no longer set here — the CLI reads it
+// from prisma.config.ts, and the runtime client builds its own adapter in
+// src/config/prisma.ts. This block only declares which SQL dialect to target.
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Role {
+  super_admin
+  registrar
+  hod
+  faculty
+  student
+}
+
+enum StudentStatus {
+  active
+  suspended
+  graduated
+}
+
+enum RegulationStatus {
+  draft
+  review
+  published
+  archived
+}
+
+enum ApprovalStepName {
+  submitted
+  reviewed
+  approved
+  rejected
+  published
+}
+
+enum RuleType {
+  attendance
+  passing
+  grading
+  promotion
+  backlog
+  grace_marks
+}
+
+enum RuleOperator {
+  gte
+  lte
+  gt
+  lt
+  eq
+  neq
+}
+
+enum SimulationOutcome {
+  eligible
+  not_eligible
+  eligible_with_conditions
+}
+
+enum NotificationTone {
+  teal
+  blue
+  coral
+  amber
+}
+
+enum AiMessageRole {
+  user
+  assistant
+}
+
+enum ReportFormat {
+  csv
+  pdf
+  excel
+}
+
+// ---------------------------------------------------------------------------
+// People
+// ---------------------------------------------------------------------------
+
+/// A staff or student login. Deleting a user is never done at the row level
+/// (see UsersService) — `isActive=false` blocks login while preserving every
+/// historical foreign key (who approved which regulation, who ran which
+/// simulation), which a hard delete would either orphan or cascade-destroy.
+model User {
+  id             String   @id @default(uuid())
+  name           String
+  email          String   @unique
+  passwordHash   String
+  role           Role
+  avatarInitials String
+  departmentId   String?
+  department     Department? @relation(fields: [departmentId], references: [id])
+  isActive       Boolean  @default(true)
+  /// Bumped on logout/refresh-rotation to invalidate all outstanding refresh tokens at once.
+  tokenVersion   Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  student            Student?
+  regulationVersions RegulationVersion[]
+  approvalSteps      ApprovalStep[]
+  simulationsRun     SimulationResult[]
+  reportsGenerated   Report[]
+  notifications      Notification[]
+  aiMessages         AiMessage[]
+  auditLogs          AuditLog[]
+
+  @@index([role])
+  @@index([departmentId])
+}
+
+// ---------------------------------------------------------------------------
+// Academic structure
+// ---------------------------------------------------------------------------
+
+model Department {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  code      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  programs Program[]
+  users    User[]
+
+  @@index([code])
+}
+
+model Program {
+  id           String   @id @default(uuid())
+  name         String
+  code         String   @unique
+  departmentId String
+  /// Restrict: a department with programs can't be deleted — the API surfaces this as a 409, not a 500.
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  years        Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  semesters   Semester[]
+  students    Student[]
+  regulations Regulation[]
+  reports     Report[]
+
+  @@index([departmentId])
+}
+
+model Semester {
+  id        String   @id @default(uuid())
+  name      String
+  programId String
+  program   Program  @relation(fields: [programId], references: [id], onDelete: Restrict)
+  year      Int
+  startDate DateTime @db.Date
+  endDate   DateTime @db.Date
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  subjects Subject[]
+
+  @@index([programId])
+}
+
+model Subject {
+  id         String   @id @default(uuid())
+  code       String
+  name       String
+  credits    Int
+  semesterId String
+  semester   Semester @relation(fields: [semesterId], references: [id], onDelete: Restrict)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  /// A subject code is unique within its own semester, not globally — the
+  /// same code plausibly repeats across different programs in a real catalog.
+  @@unique([semesterId, code])
+  @@index([semesterId])
+}
+
+// ---------------------------------------------------------------------------
+// Students
+// ---------------------------------------------------------------------------
+
+model Student {
+  id         String        @id @default(uuid())
+  name       String
+  email      String        @unique
+  studentId  String        @unique
+  programId  String
+  program    Program       @relation(fields: [programId], references: [id], onDelete: Restrict)
+  year       Int
+  status     StudentStatus @default(active)
+  gpa        Float
+  enrollDate DateTime      @db.Date
+  /// Optional 1:1 login — a Student is a record; a User is a login. Only
+  /// ever set for the 'student' role.
+  userId     String?       @unique
+  user       User?         @relation(fields: [userId], references: [id])
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  simulations SimulationResult[]
+
+  @@index([programId])
+  @@index([status])
+}
+
+// ---------------------------------------------------------------------------
+// Regulations, versioning, approval workflow
+// ---------------------------------------------------------------------------
+
+/// A published Regulation is immutable (enforced in RegulationsService, not
+/// just here) — the only way to change one is Duplicate -> edit the new
+/// draft -> resubmit -> approve, which publishes a new row with a fresh
+/// version and preserves this one exactly as it was signed off.
+model Regulation {
+  id            String           @id @default(uuid())
+  name          String
+  code          String           @unique
+  version       String
+  status        RegulationStatus @default(draft)
+  effectiveDate DateTime         @db.Date
+  lastModified  DateTime         @updatedAt
+  programId     String
+  program       Program          @relation(fields: [programId], references: [id], onDelete: Restrict)
+  description   String
+  createdAt     DateTime         @default(now())
+
+  versions        RegulationVersion[]
+  approvalHistory ApprovalStep[]
+  rules           Rule[]
+  simulations     SimulationResult[]
+  reports         Report[]
+
+  @@index([programId])
+  @@index([status])
+}
+
+/// One row per published/duplicated version — append-only, never updated,
+/// so a regulation's full history is always reconstructable.
+model RegulationVersion {
+  id            String     @id @default(uuid())
+  regulationId  String
+  regulation    Regulation @relation(fields: [regulationId], references: [id], onDelete: Cascade)
+  version       String
+  changeSummary String
+  changedById   String
+  changedBy     User       @relation(fields: [changedById], references: [id])
+  changedAt     DateTime   @default(now())
+
+  @@index([regulationId])
+}
+
+/// The submit -> review -> approve/reject -> publish audit trail. Also
+/// append-only; a "reject" doesn't delete the earlier "submitted" row.
+model ApprovalStep {
+  id           String           @id @default(uuid())
+  regulationId String
+  regulation   Regulation       @relation(fields: [regulationId], references: [id], onDelete: Cascade)
+  step         ApprovalStepName
+  byId         String
+  by           User             @relation(fields: [byId], references: [id])
+  at           DateTime         @default(now())
+  note         String?
+
+  @@index([regulationId])
+}
+
+// ---------------------------------------------------------------------------
+// Rules
+// ---------------------------------------------------------------------------
+
+model Rule {
+  id           String     @id @default(uuid())
+  regulationId String
+  regulation   Regulation @relation(fields: [regulationId], references: [id], onDelete: Cascade)
+  name         String
+  type         RuleType
+  outcome      String
+  active       Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  conditions RuleCondition[]
+
+  @@index([regulationId])
+  @@index([type])
+}
+
+model RuleCondition {
+  id       String       @id @default(uuid())
+  ruleId   String
+  rule     Rule         @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  field    String
+  operator RuleOperator
+  value    String
+
+  @@index([ruleId])
+}
+
+// ---------------------------------------------------------------------------
+// Simulator
+// ---------------------------------------------------------------------------
+
+model SimulationResult {
+  id           String            @id @default(uuid())
+  studentId    String?
+  student      Student?          @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  /// Denormalized on purpose: a "custom scenario" has no Student row at all,
+  /// and a since-deleted student's past simulations should still read sensibly.
+  studentName  String
+  regulationId String
+  regulation   Regulation        @relation(fields: [regulationId], references: [id], onDelete: Cascade)
+  ranById      String
+  ranBy        User              @relation(fields: [ranById], references: [id])
+  ranAt        DateTime          @default(now())
+  outcome      SimulationOutcome
+
+  breakdown SimulationBreakdownItem[]
+
+  @@index([regulationId])
+  @@index([studentId])
+  @@index([ranById])
+}
+
+model SimulationBreakdownItem {
+  id                 String           @id @default(uuid())
+  simulationResultId String
+  simulationResult   SimulationResult @relation(fields: [simulationResultId], references: [id], onDelete: Cascade)
+  ruleName           String
+  passed             Boolean
+  detail             String
+
+  @@index([simulationResultId])
+}
+
+// ---------------------------------------------------------------------------
+// Reports
+// ---------------------------------------------------------------------------
+
+model Report {
+  id            String        @id @default(uuid())
+  reportType    String
+  format        ReportFormat
+  programId     String?
+  program       Program?      @relation(fields: [programId], references: [id], onDelete: SetNull)
+  regulationId  String?
+  regulation    Regulation?   @relation(fields: [regulationId], references: [id], onDelete: SetNull)
+  generatedById String
+  generatedBy   User          @relation(fields: [generatedById], references: [id])
+  generatedAt   DateTime      @default(now())
+  /// Opaque key resolved by the active storage driver (a relative path
+  /// today; an S3 object key later) — see modules/reports/storage.ts.
+  storageKey    String
+
+  @@index([generatedById])
+  @@index([programId])
+  @@index([regulationId])
+}
+
+// ---------------------------------------------------------------------------
+// Notifications, AI, audit
+// ---------------------------------------------------------------------------
+
+model Notification {
+  id          String           @id @default(uuid())
+  recipientId String?
+  recipient   User?            @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+  title       String
+  detail      String
+  tone        NotificationTone @default(blue)
+  read        Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+
+  @@index([recipientId])
+  @@index([read])
+}
+
+model AiMessage {
+  id        String        @id @default(uuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      AiMessageRole
+  content   String
+  createdAt DateTime      @default(now())
+
+  @@index([userId])
+}
+
+/// Cross-cutting audit trail for sensitive actions (role changes, deletes,
+/// publish/reject) — separate from ApprovalStep, which is regulation-specific.
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action     String
+  entityType String
+  entityId   String
+  at         DateTime @default(now())
+  metadata   Json?
+
+  @@index([userId])
+  @@index([entityType, entityId])
+}
