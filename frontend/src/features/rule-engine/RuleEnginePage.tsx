@@ -188,7 +188,7 @@ export default function RuleEnginePage() {
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <Loader2 className="animate-spin text-[#557071]" size={28} />
+        <Loader2 className="animate-spin text-[#475569]" size={28} />
       </div>
     )
   }
@@ -205,16 +205,16 @@ export default function RuleEnginePage() {
     <div className="mx-auto max-w-[1440px] px-5 pb-10 pt-8 sm:px-9 lg:px-12">
       <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-[#e17f5f]">Decision Logic</p>
-          <h1 className="font-display text-[32px] font-bold tracking-[-0.04em] text-[#102b35]">Rule Engine</h1>
-          <p className="mt-2 text-sm text-[#718684]">
+          <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-[#4f46e5]">Decision Logic</p>
+          <h1 className="font-display text-[32px] font-bold tracking-[-0.04em] text-[#0f172a]">Rule Engine</h1>
+          <p className="mt-2 text-sm text-[#64748b]">
             Build the conditions that decide attendance, passing, grading, promotion, backlog, and grace-mark outcomes.
           </p>
         </div>
         {canManage && (
           <button
             onClick={openCreate}
-            className="flex w-fit items-center gap-2 rounded-lg bg-[#102b35] px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#204853]"
+            className="flex w-fit items-center gap-2 rounded-lg bg-[#0f172a] px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#1e293b]"
           >
             <Plus size={15} /> New rule
           </button>
@@ -223,18 +223,18 @@ export default function RuleEnginePage() {
 
       <div className="mb-6 flex flex-col gap-4 sm:flex-row">
         <div className="flex-1">
-          <div className="flex items-center gap-2 border-b border-[#b8c7c3] px-3 py-2 text-[#78908e]">
+          <div className="flex items-center gap-2 border-b border-[#cbd5e1] px-3 py-2 text-[#64748b]">
             <Search size={16} />
             <input
               type="text"
               placeholder="Search rules..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex-1 bg-transparent text-sm text-[#152b35] placeholder-[#9aa8a5] outline-none"
+              className="flex-1 bg-transparent text-sm text-[#0f172a] placeholder-[#94a3b8] outline-none"
             />
           </div>
         </div>
-        <select value={filterRegulation} onChange={(e) => setFilterRegulation(e.target.value)} className="rounded border border-[#e4e1da] bg-[#fbfaf7] px-3 py-2 text-xs text-[#486362] outline-none">
+        <select value={filterRegulation} onChange={(e) => setFilterRegulation(e.target.value)} className="rounded border border-[#e2e8f0] bg-[#ffffff] px-3 py-2 text-xs text-[#475569] outline-none">
           <option value="all">All regulations</option>
           {regulations.map((r) => (
             <option key={r.id} value={r.id}>
@@ -242,7 +242,7 @@ export default function RuleEnginePage() {
             </option>
           ))}
         </select>
-        <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="rounded border border-[#e4e1da] bg-[#fbfaf7] px-3 py-2 text-xs text-[#486362] outline-none">
+        <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="rounded border border-[#e2e8f0] bg-[#ffffff] px-3 py-2 text-xs text-[#475569] outline-none">
           <option value="all">All types</option>
           {ruleTypes.map((t) => (
             <option key={t.id} value={t.id}>
@@ -262,17 +262,17 @@ export default function RuleEnginePage() {
       ) : (
         <div className="space-y-3">
           {filtered.map((rule) => (
-            <div key={rule.id} className="border border-[#e4e1da] bg-[#fbfaf7] p-5">
+            <div key={rule.id} className="border border-[#e2e8f0] bg-[#ffffff] p-5">
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0 flex-1">
                   <div className="mb-1 flex flex-wrap items-center gap-2">
-                    <p className="font-semibold text-[#173640]">{rule.name}</p>
-                    <span className="rounded-full bg-[#edf0eb] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#617773]">
+                    <p className="font-semibold text-[#0f172a]">{rule.name}</p>
+                    <span className="rounded-full bg-[#f1f5f9] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#475569]">
                       {ruleTypes.find((t) => t.id === rule.type)?.label}
                     </span>
                   </div>
-                  <p className="text-xs text-[#9aa8a5]">{regulationName(rule.regulationId)}</p>
-                  <p className="mt-2 text-xs text-[#486362]">
+                  <p className="text-xs text-[#94a3b8]">{regulationName(rule.regulationId)}</p>
+                  <p className="mt-2 text-xs text-[#475569]">
                     <span className="font-mono">
                       {rule.conditions.map((c) => `${c.field} ${operators.find((o) => o.id === c.operator)?.id ?? c.operator} ${c.value}`).join('  AND  ')}
                     </span>{' '}
@@ -280,22 +280,22 @@ export default function RuleEnginePage() {
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-3">
-                  <label className={`flex items-center gap-2 text-[11px] font-semibold text-[#718684] ${canManage ? 'cursor-pointer' : 'cursor-default'}`}>
+                  <label className={`flex items-center gap-2 text-[11px] font-semibold text-[#64748b] ${canManage ? 'cursor-pointer' : 'cursor-default'}`}>
                     <input
                       type="checkbox"
                       checked={rule.active}
                       disabled={!canManage}
                       onChange={() => toggleActive(rule)}
-                      className="h-4 w-4 accent-[#087f72] disabled:opacity-50"
+                      className="h-4 w-4 accent-[#16a34a] disabled:opacity-50"
                     />
                     {rule.active ? 'Active' : 'Inactive'}
                   </label>
                   {canManage && (
                     <>
-                      <button onClick={() => openEdit(rule)} className="rounded p-1 text-[#557071] hover:bg-[#e4e1da]" aria-label={`Edit ${rule.name}`}>
+                      <button onClick={() => openEdit(rule)} className="rounded p-1 text-[#475569] hover:bg-[#e2e8f0]" aria-label={`Edit ${rule.name}`}>
                         <Edit2 size={16} />
                       </button>
-                      <button onClick={() => setDeletingRule(rule)} className="rounded p-1 text-[#d46f51] hover:bg-[#ffe1d8]" aria-label={`Delete ${rule.name}`}>
+                      <button onClick={() => setDeletingRule(rule)} className="rounded p-1 text-[#dc2626] hover:bg-[#fee2e2]" aria-label={`Delete ${rule.name}`}>
                         <Trash2 size={16} />
                       </button>
                     </>
@@ -334,16 +334,16 @@ export default function RuleEnginePage() {
           </div>
 
           <div className="mb-2 flex items-center justify-between">
-            <p className="text-xs font-semibold text-[#486362]">Conditions (all must match)</p>
+            <p className="text-xs font-semibold text-[#475569]">Conditions (all must match)</p>
             <button
               type="button"
               onClick={() => append({ field: '', operator: 'gte', value: '' })}
-              className="flex items-center gap-1 text-xs font-semibold text-[#d46f51]"
+              className="flex items-center gap-1 text-xs font-semibold text-[#4f46e5]"
             >
               <Plus size={13} /> Add condition
             </button>
           </div>
-          {errors.conditions?.root?.message && <p className="mb-2 text-[11px] font-semibold text-[#b94e37]">{errors.conditions.root.message}</p>}
+          {errors.conditions?.root?.message && <p className="mb-2 text-[11px] font-semibold text-[#dc2626]">{errors.conditions.root.message}</p>}
           <div className="mb-4 space-y-2">
             {fields.map((field, index) => (
               <div key={field.id} className="flex items-start gap-2">
@@ -364,7 +364,7 @@ export default function RuleEnginePage() {
                   type="button"
                   onClick={() => fields.length > 1 && remove(index)}
                   disabled={fields.length === 1}
-                  className="mt-2.5 shrink-0 text-[#9aa8a5] hover:text-[#b94e37] disabled:opacity-30"
+                  className="mt-2.5 shrink-0 text-[#94a3b8] hover:text-[#dc2626] disabled:opacity-30"
                   aria-label="Remove condition"
                 >
                   <X size={16} />
@@ -377,16 +377,16 @@ export default function RuleEnginePage() {
             <input id="rule-outcome" className={inputClassName} {...register('outcome')} />
           </FormField>
 
-          <label className="mb-4 flex items-center gap-2 text-xs font-semibold text-[#486362]">
-            <input type="checkbox" className="h-4 w-4 accent-[#087f72]" {...register('active')} />
+          <label className="mb-4 flex items-center gap-2 text-xs font-semibold text-[#475569]">
+            <input type="checkbox" className="h-4 w-4 accent-[#16a34a]" {...register('active')} />
             Active immediately
           </label>
 
           <div className="mt-2 flex justify-end gap-3">
-            <button type="button" onClick={() => setModalOpen(false)} className="rounded-lg border border-[#e4e1da] px-4 py-2 text-xs font-semibold text-[#486362] hover:bg-[#f0eee8]">
+            <button type="button" onClick={() => setModalOpen(false)} className="rounded-lg border border-[#e2e8f0] px-4 py-2 text-xs font-semibold text-[#475569] hover:bg-[#f1f5f9]">
               Cancel
             </button>
-            <button type="submit" disabled={isSubmitting} className="flex items-center gap-2 rounded-lg bg-[#102b35] px-4 py-2 text-xs font-semibold text-white hover:bg-[#204853] disabled:opacity-70">
+            <button type="submit" disabled={isSubmitting} className="flex items-center gap-2 rounded-lg bg-[#0f172a] px-4 py-2 text-xs font-semibold text-white hover:bg-[#1e293b] disabled:opacity-70">
               {isSubmitting && <Loader2 size={13} className="animate-spin" />}
               {editingRule ? 'Save changes' : 'Create rule'}
             </button>

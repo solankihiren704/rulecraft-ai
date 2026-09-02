@@ -9,7 +9,6 @@ import {
   GraduationCap,
   LayoutDashboard,
   Search,
-  Sparkles,
   Users,
 } from 'lucide-react'
 import * as studentsApi from '@/api/students'
@@ -33,7 +32,6 @@ const pageCommands: CommandItem[] = [
   { id: 'page-rules', group: 'Pages', label: 'Rule engine', icon: GitBranch, path: '/rule-engine' },
   { id: 'page-simulator', group: 'Pages', label: 'Simulator', icon: FlaskConical, path: '/simulator' },
   { id: 'page-users', group: 'Pages', label: 'Users & roles', icon: Users, path: '/users' },
-  { id: 'page-ai', group: 'Pages', label: 'AI assistant', icon: Sparkles, path: '/ai-assistant' },
   { id: 'page-reports', group: 'Pages', label: 'Reports', icon: FileBarChart, path: '/reports' },
 ]
 
@@ -132,28 +130,28 @@ export default function CommandPalette({ open, onClose }: { open: boolean; onClo
   let lastGroup = ''
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-[#102b35]/50 px-4 pt-[12vh]" onClick={onClose} role="presentation">
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-[#0f172a]/50 px-4 pt-[12vh]" onClick={onClose} role="presentation">
       <div
         role="dialog"
         aria-modal="true"
         aria-label="Command palette"
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg overflow-hidden border border-[#e4e1da] bg-[#fbfaf7] shadow-2xl"
+        className="w-full max-w-lg overflow-hidden border border-[#e2e8f0] bg-[#ffffff] shadow-2xl"
       >
-        <div className="flex items-center gap-3 border-b border-[#e4e1da] px-4 py-3">
-          <Search size={17} className="text-[#78908e]" />
+        <div className="flex items-center gap-3 border-b border-[#e2e8f0] px-4 py-3">
+          <Search size={17} className="text-[#64748b]" />
           <input
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search pages, students, regulations..."
-            className="flex-1 bg-transparent text-sm text-[#152b35] placeholder-[#9aa8a5] outline-none"
+            className="flex-1 bg-transparent text-sm text-[#0f172a] placeholder-[#94a3b8] outline-none"
           />
-          <kbd className="rounded border border-[#dce1db] px-1.5 py-0.5 text-[10px] text-[#78908e]">Esc</kbd>
+          <kbd className="rounded border border-[#e2e8f0] px-1.5 py-0.5 text-[10px] text-[#64748b]">Esc</kbd>
         </div>
         <div className="max-h-80 overflow-y-auto py-2">
           {results.length === 0 ? (
-            <p className="px-4 py-6 text-center text-xs text-[#9aa8a5]">No matches for "{query}".</p>
+            <p className="px-4 py-6 text-center text-xs text-[#94a3b8]">No matches for "{query}".</p>
           ) : (
             results.map((item, index) => {
               const showGroupHeader = item.group !== lastGroup
@@ -162,19 +160,19 @@ export default function CommandPalette({ open, onClose }: { open: boolean; onClo
               return (
                 <div key={item.id}>
                   {showGroupHeader && (
-                    <p className="px-4 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wide text-[#9aa8a5]">{item.group}</p>
+                    <p className="px-4 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wide text-[#94a3b8]">{item.group}</p>
                   )}
                   <button
                     onMouseEnter={() => setActiveIndex(index)}
                     onClick={() => select(item)}
                     className={`flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm ${
-                      index === activeIndex ? 'bg-[#f0eee8] text-[#173640]' : 'text-[#486362]'
+                      index === activeIndex ? 'bg-[#f1f5f9] text-[#0f172a]' : 'text-[#475569]'
                     }`}
                   >
-                    <Icon size={15} className="shrink-0 text-[#78908e]" />
+                    <Icon size={15} className="shrink-0 text-[#64748b]" />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-medium">{item.label}</span>
-                      {item.detail && <span className="block truncate text-xs text-[#9aa8a5]">{item.detail}</span>}
+                      {item.detail && <span className="block truncate text-xs text-[#94a3b8]">{item.detail}</span>}
                     </span>
                   </button>
                 </div>

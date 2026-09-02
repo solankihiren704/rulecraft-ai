@@ -1,5 +1,6 @@
 import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom'
 import {
+  Bell,
   BookOpenCheck,
   Building2,
   ChevronDown,
@@ -13,7 +14,6 @@ import {
   MoreHorizontal,
   Search,
   Settings2,
-  Sparkles,
   Users,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -21,6 +21,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/contexts/ToastContext'
 import { notifications as initialNotifications } from '@/services/mockData'
 import CommandPalette from '@/components/CommandPalette'
+import AiAssistantBubble from '@/components/AiAssistantBubble'
 
 const navigation = [
   { label: 'Command center', path: '/', icon: LayoutDashboard },
@@ -30,7 +31,6 @@ const navigation = [
   { label: 'Rule engine', path: '/rule-engine', icon: GitBranch },
   { label: 'Simulator', path: '/simulator', icon: FlaskConical },
   { label: 'Users & roles', path: '/users', icon: Users },
-  { label: 'AI assistant', path: '/ai-assistant', icon: Sparkles },
   { label: 'Reports', path: '/reports', icon: FileBarChart },
 ]
 
@@ -82,22 +82,22 @@ export default function MainLayout() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f6f4ef] text-[#152b35]">
+    <main className="min-h-screen bg-[#f8fafc] text-[#0f172a]">
       {/* Mobile Navigation */}
       {mobileNavigationOpen && (
         <div
-          className="fixed inset-0 z-30 bg-[#102b35]/40 lg:hidden"
+          className="fixed inset-0 z-30 bg-[#0f172a]/40 lg:hidden"
           onClick={() => setMobileNavigationOpen(false)}
         >
           <aside
-            className="h-full w-[280px] overflow-y-auto bg-[#102b35] p-5 text-white"
+            className="h-full w-[280px] overflow-y-auto bg-[#0f172a] p-5 text-white"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-8 flex items-center justify-between">
               <p className="font-display text-lg font-bold">RuleCraft</p>
               <button
                 onClick={() => setMobileNavigationOpen(false)}
-                className="text-2xl text-[#a5bab7]"
+                className="text-2xl text-[#94a3b8]"
                 aria-label="Close navigation"
               >
                 ×
@@ -110,8 +110,8 @@ export default function MainLayout() {
                   onClick={() => selectNavigation(path)}
                   className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-[13px] font-medium ${
                     location.pathname === path
-                      ? 'bg-[#204853] text-white'
-                      : 'text-[#a5bab7]'
+                      ? 'bg-[#1e293b] text-white'
+                      : 'text-[#94a3b8]'
                   }`}
                 >
                   <Icon size={17} />
@@ -125,22 +125,22 @@ export default function MainLayout() {
 
       <div className="flex min-h-screen">
         {/* Desktop Sidebar */}
-        <aside className="hidden w-[252px] shrink-0 flex-col bg-[#102b35] text-white lg:flex">
+        <aside className="hidden w-[252px] shrink-0 flex-col bg-[#0f172a] text-white lg:flex">
           <div className="flex items-center gap-3 px-7 pb-10 pt-8">
-            <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#f4a27f] text-[#102b35]">
+            <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#818cf8] text-[#0f172a]">
               <GitBranch size={20} strokeWidth={2.5} />
             </div>
             <div>
               <p className="font-display text-[17px] font-bold tracking-[-0.02em]">
                 RuleCraft
               </p>
-              <p className="text-[10px] uppercase tracking-[0.18em] text-[#91aaa9]">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-[#94a3b8]">
                 Academic OS
               </p>
             </div>
           </div>
           <nav className="flex-1 space-y-1 overflow-y-auto px-3">
-            <p className="px-4 pb-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[#668482]">
+            <p className="px-4 pb-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[#64748b]">
               Workspace
             </p>
             {navigation.map(({ label, path, icon: Icon }) => (
@@ -149,8 +149,8 @@ export default function MainLayout() {
                 onClick={() => selectNavigation(path)}
                 className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-[13px] font-medium transition ${
                   location.pathname === path
-                    ? 'bg-[#204853] text-white shadow-sm'
-                    : 'text-[#a5bab7] hover:bg-[#173b45] hover:text-white'
+                    ? 'bg-[#1e293b] text-white shadow-sm'
+                    : 'text-[#94a3b8] hover:bg-[#1e293b] hover:text-white'
                 }`}
               >
                 <Icon size={17} strokeWidth={location.pathname === path ? 2.3 : 1.8} />
@@ -159,10 +159,10 @@ export default function MainLayout() {
             ))}
           </nav>
           <div className="px-6 pb-7">
-            <div className="mb-6 border-t border-[#2b4b51] pt-5">
+            <div className="mb-6 border-t border-[#1e293b] pt-5">
               <button
                 onClick={() => showToast('Administration settings are available.')}
-                className="flex items-center gap-3 py-2 text-[13px] text-[#a5bab7]"
+                className="flex items-center gap-3 py-2 text-[13px] text-[#94a3b8]"
               >
                 <Settings2 size={17} /> Administration
               </button>
@@ -174,31 +174,31 @@ export default function MainLayout() {
                 aria-haspopup="menu"
                 aria-expanded={userMenuOpen}
               >
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#e2b36c] text-sm font-bold text-[#193740]">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f59e0b] text-sm font-bold text-[#1e293b]">
                   {user?.avatarInitials ?? '—'}
                 </div>
                 <div className="min-w-0 text-left">
                   <p className="truncate text-[13px] font-semibold">{user?.name ?? 'Guest'}</p>
-                  <p className="truncate text-[11px] capitalize text-[#8da6a3]">
+                  <p className="truncate text-[11px] capitalize text-[#94a3b8]">
                     {user?.role.replace('_', ' ') ?? ''}
                   </p>
                 </div>
-                <MoreHorizontal size={17} className="ml-auto text-[#8da6a3]" />
+                <MoreHorizontal size={17} className="ml-auto text-[#94a3b8]" />
               </button>
               {userMenuOpen && (
-                <div className="absolute bottom-14 left-0 z-20 w-48 border border-[#e4e1da] bg-[#fbfaf7] p-2 text-xs shadow-lg">
+                <div className="absolute bottom-14 left-0 z-20 w-48 border border-[#e2e8f0] bg-[#ffffff] p-2 text-xs shadow-lg">
                   <button
                     onClick={() => {
                       setUserMenuOpen(false)
                       showToast('Profile opened.')
                     }}
-                    className="w-full px-3 py-2 text-left text-[#486362] hover:bg-[#f0eee8]"
+                    className="w-full px-3 py-2 text-left text-[#475569] hover:bg-[#f1f5f9]"
                   >
                     View profile
                   </button>
                   <button
                     onClick={handleLogout}
-                    className="w-full px-3 py-2 text-left text-[#d46f51] hover:bg-[#f0eee8]"
+                    className="w-full px-3 py-2 text-left text-[#4f46e5] hover:bg-[#f1f5f9]"
                   >
                     <LogOut size={13} className="mr-2 inline" /> Logout
                   </button>
@@ -211,19 +211,19 @@ export default function MainLayout() {
         {/* Main Content */}
         <section className="min-w-0 flex-1">
           {/* Header */}
-          <header className="flex h-[76px] items-center justify-between border-b border-[#e4e1da] bg-[#fbfaf7] px-5 sm:px-9">
+          <header className="flex h-[76px] items-center justify-between border-b border-[#e2e8f0] bg-[#ffffff] px-5 sm:px-9">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setMobileNavigationOpen(true)}
-                className="text-[#557071] lg:hidden"
+                className="text-[#475569] lg:hidden"
                 aria-label="Open navigation"
               >
                 <Menu size={21} />
               </button>
-              <Link to="/" className="font-display text-sm font-bold text-[#102b35] lg:hidden">
+              <Link to="/" className="font-display text-sm font-bold text-[#0f172a] lg:hidden">
                 RuleCraft
               </Link>
-              <span className="hidden text-sm text-[#79908f] sm:inline">
+              <span className="hidden text-sm text-[#64748b] sm:inline">
                 {new Date().toLocaleDateString('en-US', {
                   weekday: 'long',
                   year: 'numeric',
@@ -235,37 +235,37 @@ export default function MainLayout() {
             <div className="flex items-center gap-5">
               <button
                 onClick={() => setCommandPaletteOpen(true)}
-                className="hidden items-center gap-2 border-b border-[#b8c7c3] pb-1 text-[#78908e] hover:border-[#78908e] hover:text-[#486362] md:flex"
+                className="hidden items-center gap-2 border-b border-[#cbd5e1] pb-1 text-[#64748b] hover:border-[#64748b] hover:text-[#475569] md:flex"
               >
                 <Search size={16} />
                 <span className="text-xs">Search anything</span>
-                <kbd className="ml-10 rounded border border-[#dce1db] px-1.5 py-0.5 text-[10px]">
+                <kbd className="ml-10 rounded border border-[#e2e8f0] px-1.5 py-0.5 text-[10px]">
                   ⌘ K
                 </kbd>
               </button>
-              <button onClick={() => setCommandPaletteOpen(true)} className="text-[#557071] md:hidden" aria-label="Search">
+              <button onClick={() => setCommandPaletteOpen(true)} className="text-[#475569] md:hidden" aria-label="Search">
                 <Search size={19} />
               </button>
               <div className="relative">
                 <button
                   onClick={() => setNotificationsOpen(!notificationsOpen)}
-                  className="relative text-[#557071]"
+                  className="relative text-[#475569]"
                   aria-label="Notifications"
                   aria-haspopup="menu"
                   aria-expanded={notificationsOpen}
                 >
-                  <Sparkles size={19} />
+                  <Bell size={19} />
                   {unreadCount > 0 && (
-                    <span className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-[#fbfaf7] bg-[#f4a27f] text-[8px] font-bold text-[#102b35]">
+                    <span className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-[#ffffff] bg-[#818cf8] text-[8px] font-bold text-[#0f172a]">
                       {unreadCount}
                     </span>
                   )}
                 </button>
                 {notificationsOpen && (
-                  <div className="absolute right-0 top-9 z-20 w-80 border border-[#e4e1da] bg-[#fbfaf7] text-xs shadow-lg">
-                    <div className="flex items-center justify-between border-b border-[#e4e1da] px-4 py-3">
-                      <p className="font-bold text-[#173640]">Notifications</p>
-                      <button onClick={markAllRead} className="font-semibold text-[#d46f51]">
+                  <div className="absolute right-0 top-9 z-20 w-80 border border-[#e2e8f0] bg-[#ffffff] text-xs shadow-lg">
+                    <div className="flex items-center justify-between border-b border-[#e2e8f0] px-4 py-3">
+                      <p className="font-bold text-[#0f172a]">Notifications</p>
+                      <button onClick={markAllRead} className="font-semibold text-[#4f46e5]">
                         Mark all read
                       </button>
                     </div>
@@ -273,18 +273,18 @@ export default function MainLayout() {
                       {notifications.map((n) => (
                         <div
                           key={n.id}
-                          className={`border-b border-[#eee] px-4 py-3 last:border-b-0 ${!n.read ? 'bg-[#fff8f0]' : ''}`}
+                          className={`border-b border-[#e2e8f0] px-4 py-3 last:border-b-0 ${!n.read ? 'bg-[#fffbeb]' : ''}`}
                         >
-                          <p className="font-semibold text-[#173640]">{n.title}</p>
-                          <p className="mt-0.5 text-[#718684]">{n.detail}</p>
-                          <p className="mt-1 text-[10px] text-[#9aa8a5]">{n.time}</p>
+                          <p className="font-semibold text-[#0f172a]">{n.title}</p>
+                          <p className="mt-0.5 text-[#64748b]">{n.detail}</p>
+                          <p className="mt-1 text-[10px] text-[#94a3b8]">{n.time}</p>
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
               </div>
-              <div className="hidden h-7 w-px bg-[#e4e1da] sm:block" />
+              <div className="hidden h-7 w-px bg-[#e2e8f0] sm:block" />
               <div className="relative">
                 <button
                   onClick={() => setOrganizationOpen(!organizationOpen)}
@@ -292,23 +292,23 @@ export default function MainLayout() {
                   aria-haspopup="menu"
                   aria-expanded={organizationOpen}
                 >
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#e2b36c] text-xs font-bold sm:hidden">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f59e0b] text-xs font-bold sm:hidden">
                     {user?.avatarInitials ?? '—'}
                   </span>
                   <span className="hidden sm:inline">{organization}</span>
-                  <ChevronDown size={15} className="text-[#78908e]" />
+                  <ChevronDown size={15} className="text-[#64748b]" />
                 </button>
                 {organizationOpen && (
-                  <div className="absolute right-0 top-10 z-20 w-56 border border-[#e4e1da] bg-[#fbfaf7] p-2 text-xs shadow-lg">
+                  <div className="absolute right-0 top-10 z-20 w-56 border border-[#e2e8f0] bg-[#ffffff] p-2 text-xs shadow-lg">
                     <button
                       onClick={() => switchOrganization('Northbridge University')}
-                      className="w-full px-3 py-2 text-left font-semibold text-[#173640] hover:bg-[#f0eee8]"
+                      className="w-full px-3 py-2 text-left font-semibold text-[#0f172a] hover:bg-[#f1f5f9]"
                     >
                       Northbridge University
                     </button>
                     <button
                       onClick={() => switchOrganization('Southbank Institute')}
-                      className="w-full px-3 py-2 text-left text-[#718684] hover:bg-[#f0eee8]"
+                      className="w-full px-3 py-2 text-left text-[#64748b] hover:bg-[#f1f5f9]"
                     >
                       Southbank Institute
                     </button>
@@ -324,6 +324,7 @@ export default function MainLayout() {
       </div>
 
       <CommandPalette open={commandPaletteOpen} onClose={() => setCommandPaletteOpen(false)} />
+      <AiAssistantBubble />
     </main>
   )
 }

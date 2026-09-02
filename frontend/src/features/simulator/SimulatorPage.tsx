@@ -91,7 +91,7 @@ export default function SimulatorPage() {
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <Loader2 className="animate-spin text-[#557071]" size={28} />
+        <Loader2 className="animate-spin text-[#475569]" size={28} />
       </div>
     )
   }
@@ -107,19 +107,19 @@ export default function SimulatorPage() {
   return (
     <div className="mx-auto max-w-[1200px] px-5 pb-10 pt-8 sm:px-9 lg:px-12">
       <div className="mb-8">
-        <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-[#e17f5f]">What-if Analysis</p>
-        <h1 className="font-display text-[32px] font-bold tracking-[-0.04em] text-[#102b35]">Rule Simulator</h1>
-        <p className="mt-2 text-sm text-[#718684]">
+        <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-[#4f46e5]">What-if Analysis</p>
+        <h1 className="font-display text-[32px] font-bold tracking-[-0.04em] text-[#0f172a]">Rule Simulator</h1>
+        <p className="mt-2 text-sm text-[#64748b]">
           Test a regulation's rules against a real student or a hypothetical scenario before publishing.
         </p>
       </div>
 
       <div className="grid gap-5 lg:grid-cols-[1fr_1.2fr]">
-        <section className="border border-[#e4e1da] bg-[#fbfaf7] p-5 sm:p-6">
-          <h2 className="mb-4 font-display text-lg font-bold text-[#173640]">Scenario setup</h2>
+        <section className="border border-[#e2e8f0] bg-[#ffffff] p-5 sm:p-6">
+          <h2 className="mb-4 font-display text-lg font-bold text-[#0f172a]">Scenario setup</h2>
 
           {regulations.length === 0 ? (
-            <p className="text-xs text-[#9aa8a5]">No regulations are available to simulate against.</p>
+            <p className="text-xs text-[#94a3b8]">No regulations are available to simulate against.</p>
           ) : (
             <>
               <FormField label="Regulation" htmlFor="sim-regulation" required>
@@ -141,22 +141,22 @@ export default function SimulatorPage() {
               </FormField>
 
               {isStudent ? (
-                <p className="mb-4 text-xs text-[#718684]">
-                  Running as <span className="font-semibold text-[#486362]">{user?.name}</span> — students can only
+                <p className="mb-4 text-xs text-[#64748b]">
+                  Running as <span className="font-semibold text-[#475569]">{user?.name}</span> — students can only
                   simulate their own record.
                 </p>
               ) : (
-                <p className="mb-4 text-xs text-[#9aa8a5]">
+                <p className="mb-4 text-xs text-[#94a3b8]">
                   Running a custom scenario. Testing against a specific student's real data will be available once
                   student records are connected.
                 </p>
               )}
 
               {applicableRules.length === 0 ? (
-                <p className="mt-4 text-xs text-[#9aa8a5]">This regulation has no active rules to simulate.</p>
+                <p className="mt-4 text-xs text-[#94a3b8]">This regulation has no active rules to simulate.</p>
               ) : (
                 <div className="mt-2 space-y-1">
-                  <p className="mb-2 text-xs font-semibold text-[#486362]">Scenario inputs</p>
+                  <p className="mb-2 text-xs font-semibold text-[#475569]">Scenario inputs</p>
                   {uniqueFields.map((field) => (
                     <FormField key={field} label={field} htmlFor={`field-${field}`}>
                       <input
@@ -174,7 +174,7 @@ export default function SimulatorPage() {
               <button
                 onClick={runSimulation}
                 disabled={isRunning || applicableRules.length === 0 || (isStudent && !user?.studentId)}
-                className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-[#102b35] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#204853] disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-[#0f172a] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1e293b] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isRunning ? <Loader2 size={16} className="animate-spin" /> : <PlayCircle size={16} />}
                 {isRunning ? 'Running simulation...' : 'Run simulation'}
@@ -183,23 +183,23 @@ export default function SimulatorPage() {
           )}
         </section>
 
-        <section className="border border-[#e4e1da] bg-[#fbfaf7] p-5 sm:p-6">
-          <h2 className="mb-4 font-display text-lg font-bold text-[#173640]">Result</h2>
+        <section className="border border-[#e2e8f0] bg-[#ffffff] p-5 sm:p-6">
+          <h2 className="mb-4 font-display text-lg font-bold text-[#0f172a]">Result</h2>
           {!latestResult ? (
             <EmptyState icon={FlaskConical} title="No simulation run yet" description="Configure a scenario on the left and run it to see a rule-by-rule breakdown." />
           ) : (
             <div>
               <div className="mb-4 flex items-center justify-between">
-                <p className="text-sm font-semibold text-[#173640]">{latestResult.studentName}</p>
+                <p className="text-sm font-semibold text-[#0f172a]">{latestResult.studentName}</p>
                 <StatusBadge status={latestResult.outcome} />
               </div>
               <div className="space-y-2">
                 {latestResult.breakdown.map((b, i) => (
-                  <div key={i} className={`border-l-4 p-3 text-xs ${b.passed ? 'border-[#68bbae] bg-[#f0f9f6]' : 'border-[#e17f5f] bg-[#fff4ef]'}`}>
-                    <p className="font-semibold text-[#173640]">
+                  <div key={i} className={`border-l-4 p-3 text-xs ${b.passed ? 'border-[#22c55e] bg-[#f0fdf4]' : 'border-[#dc2626] bg-[#fef2f2]'}`}>
+                    <p className="font-semibold text-[#0f172a]">
                       {b.passed ? '✓' : '✗'} {b.rule}
                     </p>
-                    <p className="mt-1 text-[#718684]">{b.detail}</p>
+                    <p className="mt-1 text-[#64748b]">{b.detail}</p>
                   </div>
                 ))}
               </div>
@@ -208,18 +208,18 @@ export default function SimulatorPage() {
         </section>
       </div>
 
-      <section className="mt-6 border border-[#e4e1da] bg-[#fbfaf7] p-5 sm:p-6">
+      <section className="mt-6 border border-[#e2e8f0] bg-[#ffffff] p-5 sm:p-6">
         <div className="mb-4 flex items-center gap-2">
-          <HistoryIcon size={16} className="text-[#557071]" />
-          <h2 className="font-display text-lg font-bold text-[#173640]">Simulation history</h2>
+          <HistoryIcon size={16} className="text-[#475569]" />
+          <h2 className="font-display text-lg font-bold text-[#0f172a]">Simulation history</h2>
         </div>
         {results.length === 0 ? (
-          <p className="text-xs text-[#9aa8a5]">No simulations run yet.</p>
+          <p className="text-xs text-[#94a3b8]">No simulations run yet.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#e4e1da] text-left text-xs text-[#718684]">
+                <tr className="border-b border-[#e2e8f0] text-left text-xs text-[#64748b]">
                   <th className="py-2 pr-4 font-semibold">Scenario</th>
                   <th className="py-2 pr-4 font-semibold">Regulation</th>
                   <th className="py-2 pr-4 font-semibold">Outcome</th>
@@ -228,13 +228,13 @@ export default function SimulatorPage() {
               </thead>
               <tbody>
                 {results.map((r) => (
-                  <tr key={r.id} className="cursor-pointer border-b border-[#eee] last:border-b-0 hover:bg-[#f8f5f0]" onClick={() => setLatestResultId(r.id)}>
-                    <td className="py-2.5 pr-4 font-semibold text-[#173640]">{r.studentName}</td>
-                    <td className="py-2.5 pr-4 text-[#486362]">{regulations.find((reg) => reg.id === r.regulationId)?.name}</td>
+                  <tr key={r.id} className="cursor-pointer border-b border-[#e2e8f0] last:border-b-0 hover:bg-[#f8fafc]" onClick={() => setLatestResultId(r.id)}>
+                    <td className="py-2.5 pr-4 font-semibold text-[#0f172a]">{r.studentName}</td>
+                    <td className="py-2.5 pr-4 text-[#475569]">{regulations.find((reg) => reg.id === r.regulationId)?.name}</td>
                     <td className="py-2.5 pr-4">
                       <StatusBadge status={r.outcome} />
                     </td>
-                    <td className="py-2.5 pr-4 text-[#9aa8a5]">{new Date(r.ranAt).toLocaleString()}</td>
+                    <td className="py-2.5 pr-4 text-[#94a3b8]">{new Date(r.ranAt).toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>

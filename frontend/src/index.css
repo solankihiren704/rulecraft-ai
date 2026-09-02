@@ -12,7 +12,7 @@
 body {
   margin: 0;
   font-family: var(--font-sans);
-  @apply bg-[#f6f4ef] text-[#152b35];
+  @apply bg-[#f8fafc] text-[#0f172a];
 }
 
 button { cursor: pointer; }

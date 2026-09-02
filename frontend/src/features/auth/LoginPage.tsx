@@ -55,23 +55,23 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#f6f4ef] px-4">
+    <main className="flex min-h-screen items-center justify-center bg-[#f8fafc] px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center text-center">
-          <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-[10px] bg-[#102b35] text-[#f4a27f]">
+          <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-[10px] bg-[#0f172a] text-[#818cf8]">
             <GitBranch size={22} strokeWidth={2.5} />
           </div>
-          <h1 className="font-display text-xl font-bold text-[#102b35]">RuleCraft</h1>
-          <p className="mt-1 text-xs text-[#718684]">Academic Regulation Builder</p>
+          <h1 className="font-display text-xl font-bold text-[#0f172a]">RuleCraft</h1>
+          <p className="mt-1 text-xs text-[#64748b]">Academic Regulation Builder</p>
         </div>
 
         <form
           onSubmit={handleSubmit(onSubmit)}
           noValidate
-          className="border border-[#e4e1da] bg-[#fbfaf7] p-6 shadow-sm"
+          className="border border-[#e2e8f0] bg-[#ffffff] p-6 shadow-sm"
         >
           {serverError && (
-            <div role="alert" className="mb-4 flex items-start gap-2 border-l-4 border-[#b94e37] bg-[#ffe1d8] p-3 text-xs font-semibold text-[#b94e37]">
+            <div role="alert" className="mb-4 flex items-start gap-2 border-l-4 border-[#dc2626] bg-[#fee2e2] p-3 text-xs font-semibold text-[#dc2626]">
               <AlertCircle size={14} className="mt-0.5 shrink-0" />
               {serverError}
             </div>
@@ -102,25 +102,25 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-[#102b35] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#204853] disabled:cursor-wait disabled:opacity-70"
+            className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-[#0f172a] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1e293b] disabled:cursor-wait disabled:opacity-70"
           >
             {isSubmitting && <Loader2 size={15} className="animate-spin" />}
             {isSubmitting ? 'Signing in...' : 'Sign in'}
           </button>
         </form>
 
-        <div className="mt-5 border border-[#e4e1da] bg-white p-4 text-xs">
-          <p className="mb-2 font-semibold text-[#486362]">Demo accounts (seeded database, password Demo@1234)</p>
+        <div className="mt-5 border border-[#e2e8f0] bg-white p-4 text-xs">
+          <p className="mb-2 font-semibold text-[#475569]">Demo accounts (seeded database, password Demo@1234)</p>
           <div className="grid grid-cols-2 gap-2">
             {demoAccounts.map((account) => (
               <button
                 type="button"
                 key={account.email}
                 onClick={() => fillDemo(account.email)}
-                className="rounded border border-[#e4e1da] px-2 py-1.5 text-left text-[#557071] hover:bg-[#f0eee8]"
+                className="rounded border border-[#e2e8f0] px-2 py-1.5 text-left text-[#475569] hover:bg-[#f1f5f9]"
               >
-                <span className="block font-semibold text-[#173640]">{account.role}</span>
-                <span className="block truncate text-[10px] text-[#9aa8a5]">{account.email}</span>
+                <span className="block font-semibold text-[#0f172a]">{account.role}</span>
+                <span className="block truncate text-[10px] text-[#94a3b8]">{account.email}</span>
               </button>
             ))}
           </div>

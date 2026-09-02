@@ -31,7 +31,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           role="status"
           aria-live="polite"
           className={`fixed bottom-5 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 border px-4 py-3 text-xs font-semibold text-white shadow-lg ${
-            toast.tone === 'success' ? 'border-[#2b4b51] bg-[#102b35]' : 'border-[#7a2c1b] bg-[#b94e37]'
+            toast.tone === 'success' ? 'border-[#1e293b] bg-[#0f172a]' : 'border-[#7f1d1d] bg-[#dc2626]'
           }`}
         >
           {toast.tone === 'success' ? <CheckCircle2 size={15} /> : <XCircle size={15} />}

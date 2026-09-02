@@ -195,7 +195,7 @@ export default function StudentsPage() {
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <Loader2 className="animate-spin text-[#557071]" size={28} />
+        <Loader2 className="animate-spin text-[#475569]" size={28} />
       </div>
     )
   }
@@ -212,14 +212,14 @@ export default function StudentsPage() {
     <div className="mx-auto max-w-[1440px] px-5 pb-10 pt-8 sm:px-9 lg:px-12">
       <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-[#e17f5f]">Student Management</p>
-          <h1 className="font-display text-[32px] font-bold tracking-[-0.04em] text-[#102b35]">Students</h1>
-          <p className="mt-2 text-sm text-[#718684]">Manage and monitor all enrolled students across programs.</p>
+          <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-[#4f46e5]">Student Management</p>
+          <h1 className="font-display text-[32px] font-bold tracking-[-0.04em] text-[#0f172a]">Students</h1>
+          <p className="mt-2 text-sm text-[#64748b]">Manage and monitor all enrolled students across programs.</p>
         </div>
         {canManage && (
           <button
             onClick={openCreate}
-            className="flex w-fit items-center gap-2 rounded-lg bg-[#102b35] px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#204853]"
+            className="flex w-fit items-center gap-2 rounded-lg bg-[#0f172a] px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#1e293b]"
           >
             <Plus size={15} /> Add student
           </button>
@@ -228,7 +228,7 @@ export default function StudentsPage() {
 
       <div className="mb-6 flex flex-col gap-4 sm:flex-row">
         <div className="flex-1">
-          <div className="flex items-center gap-2 border-b border-[#b8c7c3] px-3 py-2 text-[#78908e]">
+          <div className="flex items-center gap-2 border-b border-[#cbd5e1] px-3 py-2 text-[#64748b]">
             <Search size={16} />
             <input
               type="text"
@@ -238,7 +238,7 @@ export default function StudentsPage() {
                 setSearchQuery(e.target.value)
                 setPage(1)
               }}
-              className="flex-1 bg-transparent text-sm text-[#152b35] placeholder-[#9aa8a5] outline-none"
+              className="flex-1 bg-transparent text-sm text-[#0f172a] placeholder-[#94a3b8] outline-none"
             />
           </div>
         </div>
@@ -248,7 +248,7 @@ export default function StudentsPage() {
             setFilterYear(e.target.value)
             setPage(1)
           }}
-          className="rounded border border-[#e4e1da] bg-[#fbfaf7] px-3 py-2 text-xs text-[#486362] outline-none"
+          className="rounded border border-[#e2e8f0] bg-[#ffffff] px-3 py-2 text-xs text-[#475569] outline-none"
         >
           <option value="all">All Years</option>
           <option value="1">Year 1</option>
@@ -262,7 +262,7 @@ export default function StudentsPage() {
             setFilterStatus(e.target.value)
             setPage(1)
           }}
-          className="rounded border border-[#e4e1da] bg-[#fbfaf7] px-3 py-2 text-xs text-[#486362] outline-none"
+          className="rounded border border-[#e2e8f0] bg-[#ffffff] px-3 py-2 text-xs text-[#475569] outline-none"
         >
           <option value="all">All Status</option>
           <option value="active">Active</option>
@@ -272,7 +272,7 @@ export default function StudentsPage() {
         <button
           onClick={exportStudents}
           disabled={isExporting || filtered.length === 0}
-          className="flex items-center gap-2 rounded border border-[#e4e1da] bg-[#fbfaf7] px-3 py-2 text-xs font-semibold text-[#486362] hover:bg-[#f0eee8] disabled:opacity-60"
+          className="flex items-center gap-2 rounded border border-[#e2e8f0] bg-[#ffffff] px-3 py-2 text-xs font-semibold text-[#475569] hover:bg-[#f1f5f9] disabled:opacity-60"
         >
           {isExporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
           {isExporting ? 'Exporting...' : 'Export'}
@@ -280,19 +280,19 @@ export default function StudentsPage() {
       </div>
 
       <div className="mb-6 grid gap-3 sm:grid-cols-3">
-        <div className="border border-[#e4e1da] bg-[#fbfaf7] p-4">
-          <p className="text-xs font-semibold text-[#718684]">Total Students</p>
-          <p className="mt-2 font-display text-2xl font-bold text-[#102b35]">{students.length}</p>
+        <div className="border border-[#e2e8f0] bg-[#ffffff] p-4">
+          <p className="text-xs font-semibold text-[#64748b]">Total Students</p>
+          <p className="mt-2 font-display text-2xl font-bold text-[#0f172a]">{students.length}</p>
         </div>
-        <div className="border border-[#e4e1da] bg-[#fbfaf7] p-4">
-          <p className="text-xs font-semibold text-[#718684]">Active</p>
-          <p className="mt-2 font-display text-2xl font-bold text-[#068b7c]">
+        <div className="border border-[#e2e8f0] bg-[#ffffff] p-4">
+          <p className="text-xs font-semibold text-[#64748b]">Active</p>
+          <p className="mt-2 font-display text-2xl font-bold text-[#16a34a]">
             {students.filter((s) => s.status === 'active').length}
           </p>
         </div>
-        <div className="border border-[#e4e1da] bg-[#fbfaf7] p-4">
-          <p className="text-xs font-semibold text-[#718684]">Avg. GPA</p>
-          <p className="mt-2 font-display text-2xl font-bold text-[#102b35]">{avgGpa}</p>
+        <div className="border border-[#e2e8f0] bg-[#ffffff] p-4">
+          <p className="text-xs font-semibold text-[#64748b]">Avg. GPA</p>
+          <p className="mt-2 font-display text-2xl font-bold text-[#0f172a]">{avgGpa}</p>
         </div>
       </div>
 
@@ -305,39 +305,39 @@ export default function StudentsPage() {
         />
       ) : (
         <>
-          <div className="overflow-hidden rounded-lg border border-[#e4e1da] bg-[#fbfaf7]">
+          <div className="overflow-hidden rounded-lg border border-[#e2e8f0] bg-[#ffffff]">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-[#e4e1da] bg-[#f0eee8]">
-                    <th className="px-5 py-3 text-left font-semibold text-[#486362]">Student</th>
-                    <th className="px-5 py-3 text-left font-semibold text-[#486362]">ID</th>
-                    <th className="px-5 py-3 text-left font-semibold text-[#486362]">Program</th>
-                    <th className="px-5 py-3 text-left font-semibold text-[#486362]">Year</th>
-                    <th className="px-5 py-3 text-left font-semibold text-[#486362]">Status</th>
-                    <th className="px-5 py-3 text-left font-semibold text-[#486362]">GPA</th>
-                    <th className="px-5 py-3 text-center font-semibold text-[#486362]">Actions</th>
+                  <tr className="border-b border-[#e2e8f0] bg-[#f1f5f9]">
+                    <th className="px-5 py-3 text-left font-semibold text-[#475569]">Student</th>
+                    <th className="px-5 py-3 text-left font-semibold text-[#475569]">ID</th>
+                    <th className="px-5 py-3 text-left font-semibold text-[#475569]">Program</th>
+                    <th className="px-5 py-3 text-left font-semibold text-[#475569]">Year</th>
+                    <th className="px-5 py-3 text-left font-semibold text-[#475569]">Status</th>
+                    <th className="px-5 py-3 text-left font-semibold text-[#475569]">GPA</th>
+                    <th className="px-5 py-3 text-center font-semibold text-[#475569]">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {paged.map((student) => (
-                    <tr key={student.id} className="border-b border-[#e4e1da] last:border-b-0 hover:bg-[#f8f5f0]">
+                    <tr key={student.id} className="border-b border-[#e2e8f0] last:border-b-0 hover:bg-[#f8fafc]">
                       <td className="px-5 py-4">
-                        <p className="font-semibold text-[#173640]">{student.name}</p>
-                        <p className="text-xs text-[#9aa8a5]">{student.email}</p>
+                        <p className="font-semibold text-[#0f172a]">{student.name}</p>
+                        <p className="text-xs text-[#94a3b8]">{student.email}</p>
                       </td>
-                      <td className="px-5 py-4 text-[#486362]">{student.studentId}</td>
-                      <td className="px-5 py-4 text-[#486362]">{programName(student.programId)}</td>
-                      <td className="px-5 py-4 text-[#486362]">{student.year}</td>
+                      <td className="px-5 py-4 text-[#475569]">{student.studentId}</td>
+                      <td className="px-5 py-4 text-[#475569]">{programName(student.programId)}</td>
+                      <td className="px-5 py-4 text-[#475569]">{student.year}</td>
                       <td className="px-5 py-4">
                         <StatusBadge status={student.status} />
                       </td>
-                      <td className="px-5 py-4 font-semibold text-[#173640]">{student.gpa.toFixed(1)}</td>
+                      <td className="px-5 py-4 font-semibold text-[#0f172a]">{student.gpa.toFixed(1)}</td>
                       <td className="px-5 py-4">
                         <div className="flex justify-center gap-2">
                           <button
                             onClick={() => setViewingStudent(student)}
-                            className="rounded p-1 text-[#557071] hover:bg-[#e4e1da]"
+                            className="rounded p-1 text-[#475569] hover:bg-[#e2e8f0]"
                             title="View"
                             aria-label={`View ${student.name}`}
                           >
@@ -347,7 +347,7 @@ export default function StudentsPage() {
                             <>
                               <button
                                 onClick={() => openEdit(student)}
-                                className="rounded p-1 text-[#557071] hover:bg-[#e4e1da]"
+                                className="rounded p-1 text-[#475569] hover:bg-[#e2e8f0]"
                                 title="Edit"
                                 aria-label={`Edit ${student.name}`}
                               >
@@ -355,7 +355,7 @@ export default function StudentsPage() {
                               </button>
                               <button
                                 onClick={() => setDeletingStudent(student)}
-                                className="rounded p-1 text-[#d46f51] hover:bg-[#ffe1d8]"
+                                className="rounded p-1 text-[#dc2626] hover:bg-[#fee2e2]"
                                 title="Delete"
                                 aria-label={`Delete ${student.name}`}
                               >
@@ -372,7 +372,7 @@ export default function StudentsPage() {
             </div>
           </div>
 
-          <div className="mt-6 flex items-center justify-between text-xs text-[#9aa8a5]">
+          <div className="mt-6 flex items-center justify-between text-xs text-[#94a3b8]">
             <span>
               Showing {paged.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1}
               {'–'}
@@ -382,7 +382,7 @@ export default function StudentsPage() {
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="rounded border border-[#e4e1da] px-3 py-1 hover:bg-[#f0eee8] disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded border border-[#e2e8f0] px-3 py-1 hover:bg-[#f1f5f9] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 ← Previous
               </button>
@@ -392,7 +392,7 @@ export default function StudentsPage() {
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="rounded border border-[#e4e1da] px-3 py-1 hover:bg-[#f0eee8] disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded border border-[#e2e8f0] px-3 py-1 hover:bg-[#f1f5f9] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Next →
               </button>
@@ -450,13 +450,13 @@ export default function StudentsPage() {
             </FormField>
           </div>
           <div className="mt-2 flex justify-end gap-3">
-            <button type="button" onClick={() => setModalOpen(false)} className="rounded-lg border border-[#e4e1da] px-4 py-2 text-xs font-semibold text-[#486362] hover:bg-[#f0eee8]">
+            <button type="button" onClick={() => setModalOpen(false)} className="rounded-lg border border-[#e2e8f0] px-4 py-2 text-xs font-semibold text-[#475569] hover:bg-[#f1f5f9]">
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex items-center gap-2 rounded-lg bg-[#102b35] px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[#204853] disabled:opacity-70"
+              className="flex items-center gap-2 rounded-lg bg-[#0f172a] px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[#1e293b] disabled:opacity-70"
             >
               {isSubmitting && <Loader2 size={14} className="animate-spin" />}
               {editingStudent ? 'Save changes' : 'Add student'}
@@ -474,31 +474,31 @@ export default function StudentsPage() {
       >
         {viewingStudent && (
           <dl className="space-y-3 text-sm">
-            <div className="flex justify-between border-b border-[#eee] pb-2">
-              <dt className="text-[#718684]">Email</dt>
-              <dd className="font-semibold text-[#173640]">{viewingStudent.email}</dd>
+            <div className="flex justify-between border-b border-[#e2e8f0] pb-2">
+              <dt className="text-[#64748b]">Email</dt>
+              <dd className="font-semibold text-[#0f172a]">{viewingStudent.email}</dd>
             </div>
-            <div className="flex justify-between border-b border-[#eee] pb-2">
-              <dt className="text-[#718684]">Program</dt>
-              <dd className="font-semibold text-[#173640]">{programName(viewingStudent.programId)}</dd>
+            <div className="flex justify-between border-b border-[#e2e8f0] pb-2">
+              <dt className="text-[#64748b]">Program</dt>
+              <dd className="font-semibold text-[#0f172a]">{programName(viewingStudent.programId)}</dd>
             </div>
-            <div className="flex justify-between border-b border-[#eee] pb-2">
-              <dt className="text-[#718684]">Year</dt>
-              <dd className="font-semibold text-[#173640]">{viewingStudent.year}</dd>
+            <div className="flex justify-between border-b border-[#e2e8f0] pb-2">
+              <dt className="text-[#64748b]">Year</dt>
+              <dd className="font-semibold text-[#0f172a]">{viewingStudent.year}</dd>
             </div>
-            <div className="flex justify-between border-b border-[#eee] pb-2">
-              <dt className="text-[#718684]">Status</dt>
+            <div className="flex justify-between border-b border-[#e2e8f0] pb-2">
+              <dt className="text-[#64748b]">Status</dt>
               <dd>
                 <StatusBadge status={viewingStudent.status} />
               </dd>
             </div>
-            <div className="flex justify-between border-b border-[#eee] pb-2">
-              <dt className="text-[#718684]">GPA</dt>
-              <dd className="font-semibold text-[#173640]">{viewingStudent.gpa.toFixed(2)}</dd>
+            <div className="flex justify-between border-b border-[#e2e8f0] pb-2">
+              <dt className="text-[#64748b]">GPA</dt>
+              <dd className="font-semibold text-[#0f172a]">{viewingStudent.gpa.toFixed(2)}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-[#718684]">Enrolled</dt>
-              <dd className="font-semibold text-[#173640]">{viewingStudent.enrollDate}</dd>
+              <dt className="text-[#64748b]">Enrolled</dt>
+              <dd className="font-semibold text-[#0f172a]">{viewingStudent.enrollDate}</dd>
             </div>
           </dl>
         )}

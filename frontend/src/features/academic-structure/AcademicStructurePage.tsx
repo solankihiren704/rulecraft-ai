@@ -128,19 +128,19 @@ export default function AcademicStructurePage() {
     <div className="mx-auto max-w-[1440px] px-5 pb-10 pt-8 sm:px-9 lg:px-12">
       <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-[#e17f5f]">Organization</p>
-          <h1 className="font-display text-[32px] font-bold tracking-[-0.04em] text-[#102b35]">Academic Structure</h1>
-          <p className="mt-2 text-sm text-[#718684]">Manage departments, programs, semesters, and subjects.</p>
+          <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-[#4f46e5]">Organization</p>
+          <h1 className="font-display text-[32px] font-bold tracking-[-0.04em] text-[#0f172a]">Academic Structure</h1>
+          <p className="mt-2 text-sm text-[#64748b]">Manage departments, programs, semesters, and subjects.</p>
         </div>
         <button
           onClick={openAdd}
-          className="flex w-fit items-center gap-2 rounded-lg bg-[#102b35] px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#204853]"
+          className="flex w-fit items-center gap-2 rounded-lg bg-[#0f172a] px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#1e293b]"
         >
           <Plus size={15} /> Add {activeTab.slice(0, -1)}
         </button>
       </div>
 
-      <div className="mb-6 flex gap-1 border-b border-[#e4e1da]">
+      <div className="mb-6 flex gap-1 border-b border-[#e2e8f0]">
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -149,7 +149,7 @@ export default function AcademicStructurePage() {
               setSearchQuery('')
             }}
             className={`px-4 py-3 text-sm font-semibold transition ${
-              activeTab === tab.id ? 'border-b-2 border-[#102b35] text-[#102b35]' : 'text-[#718684] hover:text-[#486362]'
+              activeTab === tab.id ? 'border-b-2 border-[#0f172a] text-[#0f172a]' : 'text-[#64748b] hover:text-[#475569]'
             }`}
           >
             {tab.label}
@@ -158,14 +158,14 @@ export default function AcademicStructurePage() {
       </div>
 
       <div className="mb-6">
-        <div className="flex items-center gap-2 border-b border-[#b8c7c3] px-3 py-2 text-[#78908e]">
+        <div className="flex items-center gap-2 border-b border-[#cbd5e1] px-3 py-2 text-[#64748b]">
           <Search size={16} />
           <input
             type="text"
             placeholder={`Search ${activeTab}...`}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1 bg-transparent text-sm text-[#152b35] placeholder-[#9aa8a5] outline-none"
+            className="flex-1 bg-transparent text-sm text-[#0f172a] placeholder-[#94a3b8] outline-none"
           />
         </div>
       </div>
@@ -178,11 +178,11 @@ export default function AcademicStructurePage() {
             {filteredDepartments.map((dept) => {
               const programCount = programs.filter((p) => p.departmentId === dept.id).length
               return (
-                <div key={dept.id} className="border border-[#e4e1da] bg-[#fbfaf7] p-5">
+                <div key={dept.id} className="border border-[#e2e8f0] bg-[#ffffff] p-5">
                   <div className="flex items-start justify-between">
                     <div>
-                      <h3 className="font-semibold text-[#173640]">{dept.name}</h3>
-                      <p className="text-xs text-[#9aa8a5]">Code: {dept.code}</p>
+                      <h3 className="font-semibold text-[#0f172a]">{dept.name}</h3>
+                      <p className="text-xs text-[#94a3b8]">Code: {dept.code}</p>
                     </div>
                     <div className="flex gap-2">
                       <button
@@ -191,14 +191,14 @@ export default function AcademicStructurePage() {
                           deptForm.reset({ name: dept.name, code: dept.code })
                           setDeptModalOpen(true)
                         }}
-                        className="rounded p-1 text-[#557071] hover:bg-[#e4e1da]"
+                        className="rounded p-1 text-[#475569] hover:bg-[#e2e8f0]"
                         aria-label={`Edit ${dept.name}`}
                       >
                         <Edit2 size={16} />
                       </button>
                       <button
                         onClick={() => setDeletingDept(dept)}
-                        className="rounded p-1 text-[#d46f51] hover:bg-[#ffe1d8]"
+                        className="rounded p-1 text-[#dc2626] hover:bg-[#fee2e2]"
                         aria-label={`Delete ${dept.name}`}
                       >
                         <Trash2 size={16} />
@@ -207,12 +207,12 @@ export default function AcademicStructurePage() {
                   </div>
                   <div className="mt-4 grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-xs text-[#718684]">Programs</p>
-                      <p className="font-display text-xl font-bold text-[#102b35]">{programCount}</p>
+                      <p className="text-xs text-[#64748b]">Programs</p>
+                      <p className="font-display text-xl font-bold text-[#0f172a]">{programCount}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-[#718684]">Students</p>
-                      <p className="font-display text-xl font-bold text-[#102b35]">{studentCountFor(dept.id)}</p>
+                      <p className="text-xs text-[#64748b]">Students</p>
+                      <p className="font-display text-xl font-bold text-[#0f172a]">{studentCountFor(dept.id)}</p>
                     </div>
                   </div>
                 </div>
@@ -225,25 +225,25 @@ export default function AcademicStructurePage() {
         (filteredPrograms.length === 0 ? (
           <EmptyState icon={Search} title="No programs found" description="Try a different search term or add a new program." />
         ) : (
-          <div className="overflow-hidden rounded-lg border border-[#e4e1da] bg-[#fbfaf7]">
+          <div className="overflow-hidden rounded-lg border border-[#e2e8f0] bg-[#ffffff]">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-[#e4e1da] bg-[#f0eee8]">
-                    <th className="px-5 py-3 text-left font-semibold text-[#486362]">Program</th>
-                    <th className="px-5 py-3 text-left font-semibold text-[#486362]">Code</th>
-                    <th className="px-5 py-3 text-left font-semibold text-[#486362]">Department</th>
-                    <th className="px-5 py-3 text-left font-semibold text-[#486362]">Years</th>
-                    <th className="px-5 py-3 text-center font-semibold text-[#486362]">Actions</th>
+                  <tr className="border-b border-[#e2e8f0] bg-[#f1f5f9]">
+                    <th className="px-5 py-3 text-left font-semibold text-[#475569]">Program</th>
+                    <th className="px-5 py-3 text-left font-semibold text-[#475569]">Code</th>
+                    <th className="px-5 py-3 text-left font-semibold text-[#475569]">Department</th>
+                    <th className="px-5 py-3 text-left font-semibold text-[#475569]">Years</th>
+                    <th className="px-5 py-3 text-center font-semibold text-[#475569]">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredPrograms.map((prog) => (
-                    <tr key={prog.id} className="border-b border-[#e4e1da] last:border-b-0 hover:bg-[#f8f5f0]">
-                      <td className="px-5 py-4 font-semibold text-[#173640]">{prog.name}</td>
-                      <td className="px-5 py-4 text-[#486362]">{prog.code}</td>
-                      <td className="px-5 py-4 text-[#486362]">{departmentName(prog.departmentId)}</td>
-                      <td className="px-5 py-4 text-[#486362]">{prog.years}</td>
+                    <tr key={prog.id} className="border-b border-[#e2e8f0] last:border-b-0 hover:bg-[#f8fafc]">
+                      <td className="px-5 py-4 font-semibold text-[#0f172a]">{prog.name}</td>
+                      <td className="px-5 py-4 text-[#475569]">{prog.code}</td>
+                      <td className="px-5 py-4 text-[#475569]">{departmentName(prog.departmentId)}</td>
+                      <td className="px-5 py-4 text-[#475569]">{prog.years}</td>
                       <td className="px-5 py-4">
                         <div className="flex justify-center gap-2">
                           <button
@@ -252,14 +252,14 @@ export default function AcademicStructurePage() {
                               progForm.reset(prog)
                               setProgModalOpen(true)
                             }}
-                            className="rounded p-1 text-[#557071] hover:bg-[#e4e1da]"
+                            className="rounded p-1 text-[#475569] hover:bg-[#e2e8f0]"
                             aria-label={`Edit ${prog.name}`}
                           >
                             <Edit2 size={16} />
                           </button>
                           <button
                             onClick={() => setDeletingProg(prog)}
-                            className="rounded p-1 text-[#d46f51] hover:bg-[#ffe1d8]"
+                            className="rounded p-1 text-[#dc2626] hover:bg-[#fee2e2]"
                             aria-label={`Delete ${prog.name}`}
                           >
                             <Trash2 size={16} />
@@ -278,27 +278,27 @@ export default function AcademicStructurePage() {
         (filteredSemesters.length === 0 ? (
           <EmptyState icon={Search} title="No semesters found" description="Try a different search term or add a new semester." />
         ) : (
-          <div className="overflow-hidden rounded-lg border border-[#e4e1da] bg-[#fbfaf7]">
+          <div className="overflow-hidden rounded-lg border border-[#e2e8f0] bg-[#ffffff]">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-[#e4e1da] bg-[#f0eee8]">
-                    <th className="px-5 py-3 text-left font-semibold text-[#486362]">Semester</th>
-                    <th className="px-5 py-3 text-left font-semibold text-[#486362]">Program</th>
-                    <th className="px-5 py-3 text-left font-semibold text-[#486362]">Year</th>
-                    <th className="px-5 py-3 text-left font-semibold text-[#486362]">Start Date</th>
-                    <th className="px-5 py-3 text-left font-semibold text-[#486362]">End Date</th>
-                    <th className="px-5 py-3 text-center font-semibold text-[#486362]">Actions</th>
+                  <tr className="border-b border-[#e2e8f0] bg-[#f1f5f9]">
+                    <th className="px-5 py-3 text-left font-semibold text-[#475569]">Semester</th>
+                    <th className="px-5 py-3 text-left font-semibold text-[#475569]">Program</th>
+                    <th className="px-5 py-3 text-left font-semibold text-[#475569]">Year</th>
+                    <th className="px-5 py-3 text-left font-semibold text-[#475569]">Start Date</th>
+                    <th className="px-5 py-3 text-left font-semibold text-[#475569]">End Date</th>
+                    <th className="px-5 py-3 text-center font-semibold text-[#475569]">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredSemesters.map((sem) => (
-                    <tr key={sem.id} className="border-b border-[#e4e1da] last:border-b-0 hover:bg-[#f8f5f0]">
-                      <td className="px-5 py-4 font-semibold text-[#173640]">{sem.name}</td>
-                      <td className="px-5 py-4 text-[#486362]">{programName(sem.programId)}</td>
-                      <td className="px-5 py-4 text-[#486362]">{sem.year}</td>
-                      <td className="px-5 py-4 text-[#486362]">{sem.startDate}</td>
-                      <td className="px-5 py-4 text-[#486362]">{sem.endDate}</td>
+                    <tr key={sem.id} className="border-b border-[#e2e8f0] last:border-b-0 hover:bg-[#f8fafc]">
+                      <td className="px-5 py-4 font-semibold text-[#0f172a]">{sem.name}</td>
+                      <td className="px-5 py-4 text-[#475569]">{programName(sem.programId)}</td>
+                      <td className="px-5 py-4 text-[#475569]">{sem.year}</td>
+                      <td className="px-5 py-4 text-[#475569]">{sem.startDate}</td>
+                      <td className="px-5 py-4 text-[#475569]">{sem.endDate}</td>
                       <td className="px-5 py-4">
                         <div className="flex justify-center gap-2">
                           <button
@@ -307,14 +307,14 @@ export default function AcademicStructurePage() {
                               semForm.reset(sem)
                               setSemModalOpen(true)
                             }}
-                            className="rounded p-1 text-[#557071] hover:bg-[#e4e1da]"
+                            className="rounded p-1 text-[#475569] hover:bg-[#e2e8f0]"
                             aria-label={`Edit ${sem.name}`}
                           >
                             <Edit2 size={16} />
                           </button>
                           <button
                             onClick={() => setDeletingSem(sem)}
-                            className="rounded p-1 text-[#d46f51] hover:bg-[#ffe1d8]"
+                            className="rounded p-1 text-[#dc2626] hover:bg-[#fee2e2]"
                             aria-label={`Delete ${sem.name}`}
                           >
                             <Trash2 size={16} />
@@ -333,25 +333,25 @@ export default function AcademicStructurePage() {
         (filteredSubjects.length === 0 ? (
           <EmptyState icon={Search} title="No subjects found" description="Try a different search term or add a new subject." />
         ) : (
-          <div className="overflow-hidden rounded-lg border border-[#e4e1da] bg-[#fbfaf7]">
+          <div className="overflow-hidden rounded-lg border border-[#e2e8f0] bg-[#ffffff]">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-[#e4e1da] bg-[#f0eee8]">
-                    <th className="px-5 py-3 text-left font-semibold text-[#486362]">Subject</th>
-                    <th className="px-5 py-3 text-left font-semibold text-[#486362]">Code</th>
-                    <th className="px-5 py-3 text-left font-semibold text-[#486362]">Credits</th>
-                    <th className="px-5 py-3 text-left font-semibold text-[#486362]">Semester</th>
-                    <th className="px-5 py-3 text-center font-semibold text-[#486362]">Actions</th>
+                  <tr className="border-b border-[#e2e8f0] bg-[#f1f5f9]">
+                    <th className="px-5 py-3 text-left font-semibold text-[#475569]">Subject</th>
+                    <th className="px-5 py-3 text-left font-semibold text-[#475569]">Code</th>
+                    <th className="px-5 py-3 text-left font-semibold text-[#475569]">Credits</th>
+                    <th className="px-5 py-3 text-left font-semibold text-[#475569]">Semester</th>
+                    <th className="px-5 py-3 text-center font-semibold text-[#475569]">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredSubjects.map((subject) => (
-                    <tr key={subject.id} className="border-b border-[#e4e1da] last:border-b-0 hover:bg-[#f8f5f0]">
-                      <td className="px-5 py-4 font-semibold text-[#173640]">{subject.name}</td>
-                      <td className="px-5 py-4 text-[#486362]">{subject.code}</td>
-                      <td className="px-5 py-4 text-[#486362]">{subject.credits}</td>
-                      <td className="px-5 py-4 text-[#486362]">{semesters.find((s) => s.id === subject.semesterId)?.name ?? 'Unknown'}</td>
+                    <tr key={subject.id} className="border-b border-[#e2e8f0] last:border-b-0 hover:bg-[#f8fafc]">
+                      <td className="px-5 py-4 font-semibold text-[#0f172a]">{subject.name}</td>
+                      <td className="px-5 py-4 text-[#475569]">{subject.code}</td>
+                      <td className="px-5 py-4 text-[#475569]">{subject.credits}</td>
+                      <td className="px-5 py-4 text-[#475569]">{semesters.find((s) => s.id === subject.semesterId)?.name ?? 'Unknown'}</td>
                       <td className="px-5 py-4">
                         <div className="flex justify-center gap-2">
                           <button
@@ -360,14 +360,14 @@ export default function AcademicStructurePage() {
                               subjForm.reset(subject)
                               setSubjModalOpen(true)
                             }}
-                            className="rounded p-1 text-[#557071] hover:bg-[#e4e1da]"
+                            className="rounded p-1 text-[#475569] hover:bg-[#e2e8f0]"
                             aria-label={`Edit ${subject.name}`}
                           >
                             <Edit2 size={16} />
                           </button>
                           <button
                             onClick={() => setDeletingSubj(subject)}
-                            className="rounded p-1 text-[#d46f51] hover:bg-[#ffe1d8]"
+                            className="rounded p-1 text-[#dc2626] hover:bg-[#fee2e2]"
                             aria-label={`Delete ${subject.name}`}
                           >
                             <Trash2 size={16} />
@@ -404,10 +404,10 @@ export default function AcademicStructurePage() {
             <input id="dept-code" className={deptForm.formState.errors.code ? inputErrorClassName : inputClassName} {...deptForm.register('code')} />
           </FormField>
           <div className="mt-2 flex justify-end gap-3">
-            <button type="button" onClick={() => setDeptModalOpen(false)} className="rounded-lg border border-[#e4e1da] px-4 py-2 text-xs font-semibold text-[#486362] hover:bg-[#f0eee8]">
+            <button type="button" onClick={() => setDeptModalOpen(false)} className="rounded-lg border border-[#e2e8f0] px-4 py-2 text-xs font-semibold text-[#475569] hover:bg-[#f1f5f9]">
               Cancel
             </button>
-            <button type="submit" className="rounded-lg bg-[#102b35] px-4 py-2 text-xs font-semibold text-white hover:bg-[#204853]">
+            <button type="submit" className="rounded-lg bg-[#0f172a] px-4 py-2 text-xs font-semibold text-white hover:bg-[#1e293b]">
               {editingDept ? 'Save changes' : 'Add department'}
             </button>
           </div>
@@ -450,10 +450,10 @@ export default function AcademicStructurePage() {
             </select>
           </FormField>
           <div className="mt-2 flex justify-end gap-3">
-            <button type="button" onClick={() => setProgModalOpen(false)} className="rounded-lg border border-[#e4e1da] px-4 py-2 text-xs font-semibold text-[#486362] hover:bg-[#f0eee8]">
+            <button type="button" onClick={() => setProgModalOpen(false)} className="rounded-lg border border-[#e2e8f0] px-4 py-2 text-xs font-semibold text-[#475569] hover:bg-[#f1f5f9]">
               Cancel
             </button>
-            <button type="submit" className="rounded-lg bg-[#102b35] px-4 py-2 text-xs font-semibold text-white hover:bg-[#204853]">
+            <button type="submit" className="rounded-lg bg-[#0f172a] px-4 py-2 text-xs font-semibold text-white hover:bg-[#1e293b]">
               {editingProg ? 'Save changes' : 'Add program'}
             </button>
           </div>
@@ -501,10 +501,10 @@ export default function AcademicStructurePage() {
             </FormField>
           </div>
           <div className="mt-2 flex justify-end gap-3">
-            <button type="button" onClick={() => setSemModalOpen(false)} className="rounded-lg border border-[#e4e1da] px-4 py-2 text-xs font-semibold text-[#486362] hover:bg-[#f0eee8]">
+            <button type="button" onClick={() => setSemModalOpen(false)} className="rounded-lg border border-[#e2e8f0] px-4 py-2 text-xs font-semibold text-[#475569] hover:bg-[#f1f5f9]">
               Cancel
             </button>
-            <button type="submit" className="rounded-lg bg-[#102b35] px-4 py-2 text-xs font-semibold text-white hover:bg-[#204853]">
+            <button type="submit" className="rounded-lg bg-[#0f172a] px-4 py-2 text-xs font-semibold text-white hover:bg-[#1e293b]">
               {editingSem ? 'Save changes' : 'Add semester'}
             </button>
           </div>
@@ -547,10 +547,10 @@ export default function AcademicStructurePage() {
             </select>
           </FormField>
           <div className="mt-2 flex justify-end gap-3">
-            <button type="button" onClick={() => setSubjModalOpen(false)} className="rounded-lg border border-[#e4e1da] px-4 py-2 text-xs font-semibold text-[#486362] hover:bg-[#f0eee8]">
+            <button type="button" onClick={() => setSubjModalOpen(false)} className="rounded-lg border border-[#e2e8f0] px-4 py-2 text-xs font-semibold text-[#475569] hover:bg-[#f1f5f9]">
               Cancel
             </button>
-            <button type="submit" className="rounded-lg bg-[#102b35] px-4 py-2 text-xs font-semibold text-white hover:bg-[#204853]">
+            <button type="submit" className="rounded-lg bg-[#0f172a] px-4 py-2 text-xs font-semibold text-white hover:bg-[#1e293b]">
               {editingSubj ? 'Save changes' : 'Add subject'}
             </button>
           </div>

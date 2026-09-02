@@ -15,13 +15,12 @@ const RegulationDetailPage = lazy(() => import('@/features/regulations/Regulatio
 const RuleEnginePage = lazy(() => import('@/features/rule-engine/RuleEnginePage'))
 const SimulatorPage = lazy(() => import('@/features/simulator/SimulatorPage'))
 const UsersPage = lazy(() => import('@/features/users/UsersPage'))
-const AiAssistantPage = lazy(() => import('@/features/ai/AiAssistantPage'))
 const ReportsPage = lazy(() => import('@/features/reports/ReportsPage'))
 
 function RouteLoading() {
   return (
     <div className="flex h-[60vh] items-center justify-center">
-      <Loader2 className="animate-spin text-[#557071]" size={26} />
+      <Loader2 className="animate-spin text-[#475569]" size={26} />
     </div>
   )
 }
@@ -50,7 +49,6 @@ function App() {
                   <Route path="/rule-engine" element={<RuleEnginePage />} />
                   <Route path="/simulator" element={<SimulatorPage />} />
                   <Route path="/users" element={<UsersPage />} />
-                  <Route path="/ai-assistant" element={<AiAssistantPage />} />
                   <Route path="/reports" element={<ReportsPage />} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Route>

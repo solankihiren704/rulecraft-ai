@@ -137,7 +137,7 @@ export default function RegulationsPage() {
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <Loader2 className="animate-spin text-[#557071]" size={28} />
+        <Loader2 className="animate-spin text-[#475569]" size={28} />
       </div>
     )
   }
@@ -159,14 +159,14 @@ export default function RegulationsPage() {
     <div className="mx-auto max-w-[1440px] px-5 pb-10 pt-8 sm:px-9 lg:px-12">
       <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-[#e17f5f]">Policy Management</p>
-          <h1 className="font-display text-[32px] font-bold tracking-[-0.04em] text-[#102b35]">Academic Regulations</h1>
-          <p className="mt-2 text-sm text-[#718684]">Create, manage, and publish academic policies and regulations.</p>
+          <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-[#4f46e5]">Policy Management</p>
+          <h1 className="font-display text-[32px] font-bold tracking-[-0.04em] text-[#0f172a]">Academic Regulations</h1>
+          <p className="mt-2 text-sm text-[#64748b]">Create, manage, and publish academic policies and regulations.</p>
         </div>
         {canManage && (
           <button
             onClick={openCreate}
-            className="flex w-fit items-center gap-2 rounded-lg bg-[#102b35] px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#204853]"
+            className="flex w-fit items-center gap-2 rounded-lg bg-[#0f172a] px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#1e293b]"
           >
             <Plus size={15} /> Create regulation
           </button>
@@ -175,21 +175,21 @@ export default function RegulationsPage() {
 
       <div className="mb-6 flex flex-col gap-4 sm:flex-row">
         <div className="flex-1">
-          <div className="flex items-center gap-2 border-b border-[#b8c7c3] px-3 py-2 text-[#78908e]">
+          <div className="flex items-center gap-2 border-b border-[#cbd5e1] px-3 py-2 text-[#64748b]">
             <Search size={16} />
             <input
               type="text"
               placeholder="Search regulations..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex-1 bg-transparent text-sm text-[#152b35] placeholder-[#9aa8a5] outline-none"
+              className="flex-1 bg-transparent text-sm text-[#0f172a] placeholder-[#94a3b8] outline-none"
             />
           </div>
         </div>
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
-          className="rounded border border-[#e4e1da] bg-[#fbfaf7] px-3 py-2 text-xs text-[#486362] outline-none"
+          className="rounded border border-[#e2e8f0] bg-[#ffffff] px-3 py-2 text-xs text-[#475569] outline-none"
         >
           <option value="all">All Status</option>
           <option value="published">Published</option>
@@ -200,25 +200,25 @@ export default function RegulationsPage() {
       </div>
 
       <div className="mb-6 grid gap-3 sm:grid-cols-4">
-        <div className="border border-[#e4e1da] bg-[#fbfaf7] p-4">
-          <p className="text-xs font-semibold text-[#718684]">Total Regulations</p>
-          <p className="mt-2 font-display text-2xl font-bold text-[#102b35]">{regulations.length}</p>
+        <div className="border border-[#e2e8f0] bg-[#ffffff] p-4">
+          <p className="text-xs font-semibold text-[#64748b]">Total Regulations</p>
+          <p className="mt-2 font-display text-2xl font-bold text-[#0f172a]">{regulations.length}</p>
         </div>
-        <div className="border border-[#e4e1da] bg-[#fbfaf7] p-4">
-          <p className="text-xs font-semibold text-[#718684]">Published</p>
-          <p className="mt-2 font-display text-2xl font-bold text-[#087f72]">
+        <div className="border border-[#e2e8f0] bg-[#ffffff] p-4">
+          <p className="text-xs font-semibold text-[#64748b]">Published</p>
+          <p className="mt-2 font-display text-2xl font-bold text-[#16a34a]">
             {regulations.filter((r) => r.status === 'published').length}
           </p>
         </div>
-        <div className="border border-[#e4e1da] bg-[#fbfaf7] p-4">
-          <p className="text-xs font-semibold text-[#718684]">In Review</p>
-          <p className="mt-2 font-display text-2xl font-bold text-[#b94e37]">
+        <div className="border border-[#e2e8f0] bg-[#ffffff] p-4">
+          <p className="text-xs font-semibold text-[#64748b]">In Review</p>
+          <p className="mt-2 font-display text-2xl font-bold text-[#dc2626]">
             {regulations.filter((r) => r.status === 'review').length}
           </p>
         </div>
-        <div className="border border-[#e4e1da] bg-[#fbfaf7] p-4">
-          <p className="text-xs font-semibold text-[#718684]">Total Rules</p>
-          <p className="mt-2 font-display text-2xl font-bold text-[#102b35]">
+        <div className="border border-[#e2e8f0] bg-[#ffffff] p-4">
+          <p className="text-xs font-semibold text-[#64748b]">Total Rules</p>
+          <p className="mt-2 font-display text-2xl font-bold text-[#0f172a]">
             {regulations.reduce((sum, r) => sum + r.ruleCount, 0)}
           </p>
         </div>
@@ -240,29 +240,29 @@ export default function RegulationsPage() {
       ) : (
         <div className="space-y-4">
           {filtered.map((reg) => (
-            <div key={reg.id} className="border border-[#e4e1da] bg-[#fbfaf7] p-5 transition hover:shadow-md">
+            <div key={reg.id} className="border border-[#e2e8f0] bg-[#ffffff] p-5 transition hover:shadow-md">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="mb-2 flex flex-wrap items-center gap-3">
-                    <h3 className="font-semibold text-[#173640]">{reg.name}</h3>
+                    <h3 className="font-semibold text-[#0f172a]">{reg.name}</h3>
                     <StatusBadge status={reg.status} />
                   </div>
-                  <p className="mb-3 text-xs text-[#9aa8a5]">
+                  <p className="mb-3 text-xs text-[#94a3b8]">
                     Code: <span className="font-mono font-semibold">{reg.code}</span> · Version: {reg.version} ·{' '}
                     {reg.ruleCount} rules · {programName(reg.programId)}
                   </p>
-                  <div className="grid gap-4 text-xs text-[#718684] sm:grid-cols-3">
+                  <div className="grid gap-4 text-xs text-[#64748b] sm:grid-cols-3">
                     <div>
-                      <p className="text-[10px] font-semibold uppercase text-[#668482]">Effective Date</p>
-                      <p className="mt-1 font-semibold text-[#486362]">{reg.effectiveDate}</p>
+                      <p className="text-[10px] font-semibold uppercase text-[#64748b]">Effective Date</p>
+                      <p className="mt-1 font-semibold text-[#475569]">{reg.effectiveDate}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-semibold uppercase text-[#668482]">Last Modified</p>
-                      <p className="mt-1 font-semibold text-[#486362]">{reg.lastModified}</p>
+                      <p className="text-[10px] font-semibold uppercase text-[#64748b]">Last Modified</p>
+                      <p className="mt-1 font-semibold text-[#475569]">{reg.lastModified}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-semibold uppercase text-[#668482]">Approval stage</p>
-                      <p className="mt-1 font-semibold capitalize text-[#486362]">
+                      <p className="text-[10px] font-semibold uppercase text-[#64748b]">Approval stage</p>
+                      <p className="mt-1 font-semibold capitalize text-[#475569]">
                         {reg.approvalHistory[reg.approvalHistory.length - 1]?.step.replace('_', ' ')}
                       </p>
                     </div>
@@ -271,7 +271,7 @@ export default function RegulationsPage() {
                 <div className="ml-4 flex gap-2">
                   <button
                     onClick={() => navigate(`/regulations/${reg.id}`)}
-                    className="rounded p-1 text-[#557071] hover:bg-[#e4e1da]"
+                    className="rounded p-1 text-[#475569] hover:bg-[#e2e8f0]"
                     title="View"
                     aria-label={`View ${reg.name}`}
                   >
@@ -281,7 +281,7 @@ export default function RegulationsPage() {
                     <>
                       <button
                         onClick={() => openEdit(reg)}
-                        className="rounded p-1 text-[#557071] hover:bg-[#e4e1da]"
+                        className="rounded p-1 text-[#475569] hover:bg-[#e2e8f0]"
                         title="Edit"
                         aria-label={`Edit ${reg.name}`}
                       >
@@ -289,7 +289,7 @@ export default function RegulationsPage() {
                       </button>
                       <button
                         onClick={() => setDeletingRegulation(reg)}
-                        className="rounded p-1 text-[#d46f51] hover:bg-[#ffe1d8]"
+                        className="rounded p-1 text-[#dc2626] hover:bg-[#fee2e2]"
                         title="Delete"
                         aria-label={`Delete ${reg.name}`}
                       >
@@ -336,10 +336,10 @@ export default function RegulationsPage() {
             <textarea id="reg-description" rows={3} className={errors.description ? inputErrorClassName : inputClassName} {...register('description')} />
           </FormField>
           <div className="mt-2 flex justify-end gap-3">
-            <button type="button" onClick={() => setModalOpen(false)} className="rounded-lg border border-[#e4e1da] px-4 py-2 text-xs font-semibold text-[#486362] hover:bg-[#f0eee8]">
+            <button type="button" onClick={() => setModalOpen(false)} className="rounded-lg border border-[#e2e8f0] px-4 py-2 text-xs font-semibold text-[#475569] hover:bg-[#f1f5f9]">
               Cancel
             </button>
-            <button type="submit" disabled={isSubmitting} className="flex items-center gap-2 rounded-lg bg-[#102b35] px-4 py-2 text-xs font-semibold text-white hover:bg-[#204853] disabled:opacity-70">
+            <button type="submit" disabled={isSubmitting} className="flex items-center gap-2 rounded-lg bg-[#0f172a] px-4 py-2 text-xs font-semibold text-white hover:bg-[#1e293b] disabled:opacity-70">
               {isSubmitting && <Loader2 size={13} className="animate-spin" />}
               {editingRegulation ? 'Save changes' : 'Create regulation'}
             </button>

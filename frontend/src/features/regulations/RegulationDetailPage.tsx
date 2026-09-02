@@ -89,7 +89,7 @@ export default function RegulationDetailPage() {
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <Loader2 className="animate-spin text-[#557071]" size={28} />
+        <Loader2 className="animate-spin text-[#475569]" size={28} />
       </div>
     )
   }
@@ -97,7 +97,7 @@ export default function RegulationDetailPage() {
   if (loadError || !regulation) {
     return (
       <div className="mx-auto max-w-[1200px] px-5 pb-10 pt-8 sm:px-9 lg:px-12">
-        <Link to="/regulations" className="mb-6 inline-flex items-center gap-2 text-xs font-semibold text-[#557071] hover:text-[#173640]">
+        <Link to="/regulations" className="mb-6 inline-flex items-center gap-2 text-xs font-semibold text-[#475569] hover:text-[#0f172a]">
           <ArrowLeft size={14} /> Back to regulations
         </Link>
         <EmptyState
@@ -138,28 +138,28 @@ export default function RegulationDetailPage() {
 
   return (
     <div className="mx-auto max-w-[1200px] px-5 pb-10 pt-8 sm:px-9 lg:px-12">
-      <Link to="/regulations" className="mb-6 inline-flex items-center gap-2 text-xs font-semibold text-[#557071] hover:text-[#173640]">
+      <Link to="/regulations" className="mb-6 inline-flex items-center gap-2 text-xs font-semibold text-[#475569] hover:text-[#0f172a]">
         <ArrowLeft size={14} /> Back to regulations
       </Link>
 
-      <div className="mb-8 flex flex-col justify-between gap-4 border border-[#e4e1da] bg-[#fbfaf7] p-6 sm:flex-row sm:items-start">
+      <div className="mb-8 flex flex-col justify-between gap-4 border border-[#e2e8f0] bg-[#ffffff] p-6 sm:flex-row sm:items-start">
         <div>
           <div className="mb-2 flex flex-wrap items-center gap-3">
-            <h1 className="font-display text-2xl font-bold text-[#102b35]">{regulation.name}</h1>
+            <h1 className="font-display text-2xl font-bold text-[#0f172a]">{regulation.name}</h1>
             <StatusBadge status={regulation.status} />
           </div>
-          <p className="text-xs text-[#9aa8a5]">
+          <p className="text-xs text-[#94a3b8]">
             Code: <span className="font-mono font-semibold">{regulation.code}</span> · Version {regulation.version} ·{' '}
             {programName}
           </p>
-          <p className="mt-3 max-w-2xl text-sm text-[#486362]">{regulation.description}</p>
+          <p className="mt-3 max-w-2xl text-sm text-[#475569]">{regulation.description}</p>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
           {regulation.status === 'draft' && canManage && (
             <button
               disabled={actionPending}
               onClick={() => runAction(() => regulationsApi.submit(regulation.id), `${regulation.name} moved to review.`)}
-              className="flex items-center gap-2 rounded-lg bg-[#102b35] px-3 py-2 text-xs font-semibold text-white hover:bg-[#204853] disabled:opacity-60"
+              className="flex items-center gap-2 rounded-lg bg-[#0f172a] px-3 py-2 text-xs font-semibold text-white hover:bg-[#1e293b] disabled:opacity-60"
             >
               <Send size={14} /> Submit for review
             </button>
@@ -168,7 +168,7 @@ export default function RegulationDetailPage() {
             <button
               disabled={actionPending}
               onClick={() => runAction(() => regulationsApi.approve(regulation.id), `${regulation.name} approved and published.`)}
-              className="flex items-center gap-2 rounded-lg bg-[#087f72] px-3 py-2 text-xs font-semibold text-white hover:bg-[#066a5f] disabled:opacity-60"
+              className="flex items-center gap-2 rounded-lg bg-[#16a34a] px-3 py-2 text-xs font-semibold text-white hover:bg-[#15803d] disabled:opacity-60"
             >
               <ShieldCheck size={14} /> Approve &amp; publish
             </button>
@@ -177,7 +177,7 @@ export default function RegulationDetailPage() {
             <button
               disabled={actionPending}
               onClick={() => setConfirmAction('reject')}
-              className="flex items-center gap-2 rounded-lg border border-[#b94e37] px-3 py-2 text-xs font-semibold text-[#b94e37] hover:bg-[#ffe1d8] disabled:opacity-60"
+              className="flex items-center gap-2 rounded-lg border border-[#dc2626] px-3 py-2 text-xs font-semibold text-[#dc2626] hover:bg-[#fee2e2] disabled:opacity-60"
             >
               <XCircle size={14} /> Reject
             </button>
@@ -186,7 +186,7 @@ export default function RegulationDetailPage() {
             <button
               disabled={actionPending}
               onClick={duplicateRegulation}
-              className="flex items-center gap-2 rounded-lg border border-[#e4e1da] px-3 py-2 text-xs font-semibold text-[#486362] hover:bg-[#f0eee8] disabled:opacity-60"
+              className="flex items-center gap-2 rounded-lg border border-[#e2e8f0] px-3 py-2 text-xs font-semibold text-[#475569] hover:bg-[#f1f5f9] disabled:opacity-60"
             >
               <Copy size={14} /> Duplicate
             </button>
@@ -195,7 +195,7 @@ export default function RegulationDetailPage() {
             <button
               disabled={actionPending}
               onClick={() => setConfirmAction('archive')}
-              className="flex items-center gap-2 rounded-lg border border-[#e4e1da] px-3 py-2 text-xs font-semibold text-[#486362] hover:bg-[#f0eee8] disabled:opacity-60"
+              className="flex items-center gap-2 rounded-lg border border-[#e2e8f0] px-3 py-2 text-xs font-semibold text-[#475569] hover:bg-[#f1f5f9] disabled:opacity-60"
             >
               <Archive size={14} /> Archive
             </button>
@@ -203,13 +203,13 @@ export default function RegulationDetailPage() {
         </div>
       </div>
 
-      <div className="mb-6 flex gap-1 border-b border-[#e4e1da]">
+      <div className="mb-6 flex gap-1 border-b border-[#e2e8f0]">
         {tabs.map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`px-4 py-3 text-sm font-semibold transition ${
-              activeTab === tab ? 'border-b-2 border-[#102b35] text-[#102b35]' : 'text-[#718684] hover:text-[#486362]'
+              activeTab === tab ? 'border-b-2 border-[#0f172a] text-[#0f172a]' : 'text-[#64748b] hover:text-[#475569]'
             }`}
           >
             {tab}
@@ -219,17 +219,17 @@ export default function RegulationDetailPage() {
 
       {activeTab === 'Overview' && (
         <div className="grid gap-4 sm:grid-cols-3">
-          <div className="border border-[#e4e1da] bg-[#fbfaf7] p-4">
-            <p className="text-xs font-semibold text-[#718684]">Effective date</p>
-            <p className="mt-2 font-display text-lg font-bold text-[#102b35]">{regulation.effectiveDate}</p>
+          <div className="border border-[#e2e8f0] bg-[#ffffff] p-4">
+            <p className="text-xs font-semibold text-[#64748b]">Effective date</p>
+            <p className="mt-2 font-display text-lg font-bold text-[#0f172a]">{regulation.effectiveDate}</p>
           </div>
-          <div className="border border-[#e4e1da] bg-[#fbfaf7] p-4">
-            <p className="text-xs font-semibold text-[#718684]">Last modified</p>
-            <p className="mt-2 font-display text-lg font-bold text-[#102b35]">{regulation.lastModified}</p>
+          <div className="border border-[#e2e8f0] bg-[#ffffff] p-4">
+            <p className="text-xs font-semibold text-[#64748b]">Last modified</p>
+            <p className="mt-2 font-display text-lg font-bold text-[#0f172a]">{regulation.lastModified}</p>
           </div>
-          <div className="border border-[#e4e1da] bg-[#fbfaf7] p-4">
-            <p className="text-xs font-semibold text-[#718684]">Active rules</p>
-            <p className="mt-2 font-display text-lg font-bold text-[#102b35]">
+          <div className="border border-[#e2e8f0] bg-[#ffffff] p-4">
+            <p className="text-xs font-semibold text-[#64748b]">Active rules</p>
+            <p className="mt-2 font-display text-lg font-bold text-[#0f172a]">
               {regulationRules.filter((r) => r.active).length} / {regulationRules.length}
             </p>
           </div>
@@ -239,21 +239,21 @@ export default function RegulationDetailPage() {
       {activeTab === 'Rules' && (
         <div className="space-y-3">
           {regulationRules.length === 0 ? (
-            <div className="border border-dashed border-[#d8d3c8] bg-[#fbfaf7] py-10 text-center text-sm text-[#9aa8a5]">
+            <div className="border border-dashed border-[#cbd5e1] bg-[#ffffff] py-10 text-center text-sm text-[#94a3b8]">
               No rules attached yet.{' '}
-              <Link to="/rule-engine" className="font-semibold text-[#d46f51]">
+              <Link to="/rule-engine" className="font-semibold text-[#4f46e5]">
                 Build one in the rule engine.
               </Link>
             </div>
           ) : (
             regulationRules.map((rule) => (
-              <div key={rule.id} className="border border-[#e4e1da] bg-[#fbfaf7] p-4">
+              <div key={rule.id} className="border border-[#e2e8f0] bg-[#ffffff] p-4">
                 <div className="flex items-center justify-between">
-                  <p className="font-semibold text-[#173640]">{rule.name}</p>
+                  <p className="font-semibold text-[#0f172a]">{rule.name}</p>
                   <StatusBadge status={rule.active ? 'active' : 'draft'} label={rule.active ? 'active' : 'inactive'} />
                 </div>
-                <p className="mt-1 text-xs uppercase tracking-wide text-[#9aa8a5]">{rule.type.replace('_', ' ')}</p>
-                <p className="mt-2 text-xs text-[#718684]">
+                <p className="mt-1 text-xs uppercase tracking-wide text-[#94a3b8]">{rule.type.replace('_', ' ')}</p>
+                <p className="mt-2 text-xs text-[#64748b]">
                   {rule.conditions.map((c) => `${c.field} ${c.operator} ${c.value}`).join(' AND ')} → {rule.outcome}
                 </p>
               </div>
@@ -265,16 +265,16 @@ export default function RegulationDetailPage() {
       {activeTab === 'Version history' && (
         <div className="space-y-3">
           {regulation.versions.map((v) => (
-            <div key={v.version} className="flex gap-4 border border-[#e4e1da] bg-[#fbfaf7] p-4">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#edf0eb] text-[#617773]">
+            <div key={v.version} className="flex gap-4 border border-[#e2e8f0] bg-[#ffffff] p-4">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#f1f5f9] text-[#475569]">
                 <GitCommitHorizontal size={15} />
               </div>
               <div>
-                <p className="text-sm font-semibold text-[#173640]">
-                  v{v.version} <span className="font-normal text-[#9aa8a5]">· {v.changedAt}</span>
+                <p className="text-sm font-semibold text-[#0f172a]">
+                  v{v.version} <span className="font-normal text-[#94a3b8]">· {v.changedAt}</span>
                 </p>
-                <p className="mt-1 text-xs text-[#718684]">{v.changeSummary}</p>
-                <p className="mt-1 text-[10px] text-[#9aa8a5]">by {v.changedBy}</p>
+                <p className="mt-1 text-xs text-[#64748b]">{v.changeSummary}</p>
+                <p className="mt-1 text-[10px] text-[#94a3b8]">by {v.changedBy}</p>
               </div>
             </div>
           ))}
@@ -284,14 +284,14 @@ export default function RegulationDetailPage() {
       {activeTab === 'Approval workflow' && (
         <div className="space-y-3">
           {regulation.approvalHistory.map((step, index) => (
-            <div key={index} className="flex gap-4 border border-[#e4e1da] bg-[#fbfaf7] p-4">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#d8f4ed] text-[#087f72]">
+            <div key={index} className="flex gap-4 border border-[#e2e8f0] bg-[#ffffff] p-4">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#dcfce7] text-[#16a34a]">
                 {step.step === 'rejected' ? <XCircle size={15} /> : <CheckCircle2 size={15} />}
               </div>
               <div>
-                <p className="text-sm font-semibold capitalize text-[#173640]">{step.step.replace('_', ' ')}</p>
-                <p className="mt-1 text-xs text-[#718684]">by {step.by} · {new Date(step.at).toLocaleString()}</p>
-                {step.note && <p className="mt-1 flex items-center gap-1 text-xs text-[#9aa8a5]"><FileText size={12} /> {step.note}</p>}
+                <p className="text-sm font-semibold capitalize text-[#0f172a]">{step.step.replace('_', ' ')}</p>
+                <p className="mt-1 text-xs text-[#64748b]">by {step.by} · {new Date(step.at).toLocaleString()}</p>
+                {step.note && <p className="mt-1 flex items-center gap-1 text-xs text-[#94a3b8]"><FileText size={12} /> {step.note}</p>}
               </div>
             </div>
           ))}

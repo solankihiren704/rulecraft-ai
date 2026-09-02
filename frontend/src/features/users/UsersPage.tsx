@@ -23,11 +23,11 @@ const roleLabels: Record<Role, string> = {
 }
 
 const roleBadgeClasses: Record<Role, string> = {
-  super_admin: 'bg-[#102b35] text-white',
-  registrar: 'bg-[#f0e3d0] text-[#8a5a20]',
-  hod: 'bg-[#dceafa] text-[#2d65a1]',
-  faculty: 'bg-[#d8f4ed] text-[#087f72]',
-  student: 'bg-[#fff0c7] text-[#997016]',
+  super_admin: 'bg-[#0f172a] text-white',
+  registrar: 'bg-[#fffbeb] text-[#92400e]',
+  hod: 'bg-[#dbeafe] text-[#2563eb]',
+  faculty: 'bg-[#dcfce7] text-[#16a34a]',
+  student: 'bg-[#fef3c7] text-[#d97706]',
 }
 
 const schema = z.object({
@@ -160,7 +160,7 @@ export default function UsersPage() {
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <Loader2 className="animate-spin text-[#557071]" size={28} />
+        <Loader2 className="animate-spin text-[#475569]" size={28} />
       </div>
     )
   }
@@ -177,14 +177,14 @@ export default function UsersPage() {
     <div className="mx-auto max-w-[1440px] px-5 pb-10 pt-8 sm:px-9 lg:px-12">
       <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-[#e17f5f]">Access Control</p>
-          <h1 className="font-display text-[32px] font-bold tracking-[-0.04em] text-[#102b35]">Users &amp; Roles</h1>
-          <p className="mt-2 text-sm text-[#718684]">Manage who can view, edit, and approve regulations.</p>
+          <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-[#4f46e5]">Access Control</p>
+          <h1 className="font-display text-[32px] font-bold tracking-[-0.04em] text-[#0f172a]">Users &amp; Roles</h1>
+          <p className="mt-2 text-sm text-[#64748b]">Manage who can view, edit, and approve regulations.</p>
         </div>
         {canManage && (
           <button
             onClick={openInvite}
-            className="flex w-fit items-center gap-2 rounded-lg bg-[#102b35] px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#204853]"
+            className="flex w-fit items-center gap-2 rounded-lg bg-[#0f172a] px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#1e293b]"
           >
             <Plus size={15} /> Invite user
           </button>
@@ -193,18 +193,18 @@ export default function UsersPage() {
 
       <div className="mb-6 flex flex-col gap-4 sm:flex-row">
         <div className="flex-1">
-          <div className="flex items-center gap-2 border-b border-[#b8c7c3] px-3 py-2 text-[#78908e]">
+          <div className="flex items-center gap-2 border-b border-[#cbd5e1] px-3 py-2 text-[#64748b]">
             <Search size={16} />
             <input
               type="text"
               placeholder="Search by name or email..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex-1 bg-transparent text-sm text-[#152b35] placeholder-[#9aa8a5] outline-none"
+              className="flex-1 bg-transparent text-sm text-[#0f172a] placeholder-[#94a3b8] outline-none"
             />
           </div>
         </div>
-        <select value={filterRole} onChange={(e) => setFilterRole(e.target.value)} className="rounded border border-[#e4e1da] bg-[#fbfaf7] px-3 py-2 text-xs text-[#486362] outline-none">
+        <select value={filterRole} onChange={(e) => setFilterRole(e.target.value)} className="rounded border border-[#e2e8f0] bg-[#ffffff] px-3 py-2 text-xs text-[#475569] outline-none">
           <option value="all">All roles</option>
           {Object.entries(roleLabels).map(([id, label]) => (
             <option key={id} value={id}>
@@ -217,47 +217,47 @@ export default function UsersPage() {
       {filtered.length === 0 ? (
         <EmptyState icon={UserRound} title="No users found" description="Try a different search or filter, or invite a new user." action={canManage ? { label: 'Invite user', onClick: openInvite } : { label: 'Clear filters', onClick: () => { setSearchQuery(''); setFilterRole('all') } }} />
       ) : (
-        <div className="overflow-hidden rounded-lg border border-[#e4e1da] bg-[#fbfaf7]">
+        <div className="overflow-hidden rounded-lg border border-[#e2e8f0] bg-[#ffffff]">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#e4e1da] bg-[#f0eee8]">
-                  <th className="px-5 py-3 text-left font-semibold text-[#486362]">User</th>
-                  <th className="px-5 py-3 text-left font-semibold text-[#486362]">Role</th>
-                  <th className="px-5 py-3 text-left font-semibold text-[#486362]">Department</th>
-                  {canManage && <th className="px-5 py-3 text-center font-semibold text-[#486362]">Actions</th>}
+                <tr className="border-b border-[#e2e8f0] bg-[#f1f5f9]">
+                  <th className="px-5 py-3 text-left font-semibold text-[#475569]">User</th>
+                  <th className="px-5 py-3 text-left font-semibold text-[#475569]">Role</th>
+                  <th className="px-5 py-3 text-left font-semibold text-[#475569]">Department</th>
+                  {canManage && <th className="px-5 py-3 text-center font-semibold text-[#475569]">Actions</th>}
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((u) => (
-                  <tr key={u.id} className="border-b border-[#e4e1da] last:border-b-0 hover:bg-[#f8f5f0]">
+                  <tr key={u.id} className="border-b border-[#e2e8f0] last:border-b-0 hover:bg-[#f8fafc]">
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#e2b36c] text-xs font-bold text-[#193740]">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#f59e0b] text-xs font-bold text-[#1e293b]">
                           {u.avatarInitials}
                         </div>
                         <div>
-                          <p className="font-semibold text-[#173640]">
-                            {u.name} {u.id === currentUser?.id && <span className="text-[10px] font-normal text-[#9aa8a5]">(you)</span>}
+                          <p className="font-semibold text-[#0f172a]">
+                            {u.name} {u.id === currentUser?.id && <span className="text-[10px] font-normal text-[#94a3b8]">(you)</span>}
                           </p>
-                          <p className="text-xs text-[#9aa8a5]">{u.email}</p>
+                          <p className="text-xs text-[#94a3b8]">{u.email}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-5 py-4">
                       <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${roleBadgeClasses[u.role]}`}>{roleLabels[u.role]}</span>
                     </td>
-                    <td className="px-5 py-4 text-[#486362]">{u.department ?? '—'}</td>
+                    <td className="px-5 py-4 text-[#475569]">{u.department ?? '—'}</td>
                     {canManage && (
                       <td className="px-5 py-4">
                         <div className="flex justify-center gap-2">
-                          <button onClick={() => openEdit(u)} className="rounded p-1 text-[#557071] hover:bg-[#e4e1da]" aria-label={`Edit ${u.name}`}>
+                          <button onClick={() => openEdit(u)} className="rounded p-1 text-[#475569] hover:bg-[#e2e8f0]" aria-label={`Edit ${u.name}`}>
                             <Edit2 size={16} />
                           </button>
                           <button
                             onClick={() => setDeletingUser(u)}
                             disabled={u.id === currentUser?.id}
-                            className="rounded p-1 text-[#d46f51] hover:bg-[#ffe1d8] disabled:cursor-not-allowed disabled:opacity-30"
+                            className="rounded p-1 text-[#dc2626] hover:bg-[#fee2e2] disabled:cursor-not-allowed disabled:opacity-30"
                             aria-label={`Remove ${u.name}`}
                             title={u.id === currentUser?.id ? "You can't remove your own account" : 'Remove user'}
                           >
@@ -304,15 +304,15 @@ export default function UsersPage() {
             </FormField>
           </div>
           {!editingUser && (
-            <p className="mb-4 text-[11px] text-[#9aa8a5]">
+            <p className="mb-4 text-[11px] text-[#94a3b8]">
               A temporary password is generated automatically — you'll see it once, right after creating this user.
             </p>
           )}
           <div className="mt-2 flex justify-end gap-3">
-            <button type="button" onClick={() => setModalOpen(false)} className="rounded-lg border border-[#e4e1da] px-4 py-2 text-xs font-semibold text-[#486362] hover:bg-[#f0eee8]">
+            <button type="button" onClick={() => setModalOpen(false)} className="rounded-lg border border-[#e2e8f0] px-4 py-2 text-xs font-semibold text-[#475569] hover:bg-[#f1f5f9]">
               Cancel
             </button>
-            <button type="submit" disabled={isSubmitting} className="flex items-center gap-2 rounded-lg bg-[#102b35] px-4 py-2 text-xs font-semibold text-white hover:bg-[#204853] disabled:opacity-70">
+            <button type="submit" disabled={isSubmitting} className="flex items-center gap-2 rounded-lg bg-[#0f172a] px-4 py-2 text-xs font-semibold text-white hover:bg-[#1e293b] disabled:opacity-70">
               {isSubmitting && <Loader2 size={13} className="animate-spin" />}
               {editingUser ? 'Save changes' : 'Send invite'}
             </button>
@@ -329,17 +329,17 @@ export default function UsersPage() {
       >
         {newCredential && (
           <div>
-            <p className="text-sm text-[#173640]">
+            <p className="text-sm text-[#0f172a]">
               <span className="font-semibold">{newCredential.name}</span> ({newCredential.email})
             </p>
-            <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-[#e4e1da] bg-white px-3 py-2.5">
-              <code className="text-sm font-semibold text-[#102b35]">{newCredential.tempPassword}</code>
-              <button onClick={copyTempPassword} className="flex items-center gap-1 text-xs font-semibold text-[#557071] hover:text-[#173640]" aria-label="Copy temporary password">
+            <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-[#e2e8f0] bg-white px-3 py-2.5">
+              <code className="text-sm font-semibold text-[#0f172a]">{newCredential.tempPassword}</code>
+              <button onClick={copyTempPassword} className="flex items-center gap-1 text-xs font-semibold text-[#475569] hover:text-[#0f172a]" aria-label="Copy temporary password">
                 <Copy size={14} /> Copy
               </button>
             </div>
             <div className="mt-5 flex justify-end">
-              <button onClick={() => setNewCredential(null)} className="rounded-lg bg-[#102b35] px-4 py-2 text-xs font-semibold text-white hover:bg-[#204853]">
+              <button onClick={() => setNewCredential(null)} className="rounded-lg bg-[#0f172a] px-4 py-2 text-xs font-semibold text-white hover:bg-[#1e293b]">
                 Done
               </button>
             </div>

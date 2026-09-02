@@ -24,7 +24,7 @@ export default function Modal({ open, title, description, onClose, children, wid
 
   return (
     <div
-      className="fixed inset-0 z-40 flex items-center justify-center bg-[#102b35]/50 p-4"
+      className="fixed inset-0 z-40 flex items-center justify-center bg-[#0f172a]/50 p-4"
       onClick={onClose}
       role="presentation"
     >
@@ -33,19 +33,19 @@ export default function Modal({ open, title, description, onClose, children, wid
         aria-modal="true"
         aria-labelledby="modal-title"
         onClick={(e) => e.stopPropagation()}
-        className={`max-h-[90vh] w-full overflow-y-auto border border-[#e4e1da] bg-[#fbfaf7] shadow-xl ${widthClassName}`}
+        className={`max-h-[90vh] w-full overflow-y-auto border border-[#e2e8f0] bg-[#ffffff] shadow-xl ${widthClassName}`}
       >
-        <div className="flex items-start justify-between border-b border-[#e4e1da] px-6 py-5">
+        <div className="flex items-start justify-between border-b border-[#e2e8f0] px-6 py-5">
           <div>
-            <h2 id="modal-title" className="font-display text-lg font-bold text-[#102b35]">
+            <h2 id="modal-title" className="font-display text-lg font-bold text-[#0f172a]">
               {title}
             </h2>
-            {description && <p className="mt-1 text-xs text-[#718684]">{description}</p>}
+            {description && <p className="mt-1 text-xs text-[#64748b]">{description}</p>}
           </div>
           <button
             onClick={onClose}
             aria-label="Close dialog"
-            className="rounded p-1 text-[#557071] hover:bg-[#e4e1da]"
+            className="rounded p-1 text-[#475569] hover:bg-[#e2e8f0]"
           >
             <X size={18} />
           </button>
