@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { AlertCircle, Plus, Search, Download, Eye, Edit2, Trash2, Loader2 } from 'lucide-react'
+import { AlertCircle, Plus, Search, Download, Upload, FileSpreadsheet, Eye, Edit2, Trash2, Loader2, CheckCircle2, XCircle } from 'lucide-react'
 import { useToast } from '@/contexts/ToastContext'
 import { useAuth } from '@/contexts/AuthContext'
 import Modal from '@/components/ui/Modal'
@@ -12,8 +12,11 @@ import StatusBadge from '@/components/ui/StatusBadge'
 import FormField, { inputClassName, inputErrorClassName } from '@/components/ui/FormField'
 import * as studentsApi from '@/api/students'
 import * as programsApi from '@/api/programs'
+import * as departmentsApi from '@/api/departments'
 import { ApiRequestError } from '@/api/client'
-import type { Program, Student } from '@/types'
+import { triggerBlobDownload } from '@/utils/download'
+import type { ImportSummary } from '@/api/students'
+import type { Department, Program, Student } from '@/types'
 
 const schema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
@@ -29,9 +32,9 @@ type FormValues = z.infer<typeof schema>
 const PAGE_SIZE = 5
 const formFields: (keyof FormValues)[] = ['name', 'email', 'studentId', 'programId', 'year', 'status', 'gpa']
 
-function downloadCsv(students: Student[], programName: (id: string) => string) {
-  const header = ['Name', 'Email', 'Student ID', 'Program', 'Year', 'Status', 'GPA', 'Enrolled']
-  const rows = students.map((s) => [s.name, s.email, s.studentId, programName(s.programId), s.year, s.status, s.gpa.toFixed(2), s.enrollDate])
+function downloadCsv(students: Student[], programName: (id: string) => string, departmentName: (id: string) => string) {
+  const header = ['Name', 'Email', 'Student ID', 'Department', 'Program', 'Year', 'Status', 'GPA', 'Enrolled']
+  const rows = students.map((s) => [s.name, s.email, s.studentId, departmentName(s.programId), programName(s.programId), s.year, s.status, s.gpa.toFixed(2), s.enrollDate])
   const escape = (value: string | number) => `"${String(value).replace(/"/g, '""')}"`
   const csv = [header, ...rows].map((row) => row.map(escape).join(',')).join('\r\n')
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
@@ -52,18 +55,29 @@ export default function StudentsPage() {
 
   const [students, setStudents] = useState<Student[]>([])
   const [programs, setPrograms] = useState<Program[]>([])
+  const [departments, setDepartments] = useState<Department[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
 
   const [searchQuery, setSearchQuery] = useState('')
   const [filterYear, setFilterYear] = useState('all')
   const [filterStatus, setFilterStatus] = useState('all')
+  const [filterDepartment, setFilterDepartment] = useState('all')
+  const [filterProgram, setFilterProgram] = useState('all')
   const [page, setPage] = useState(1)
   const [modalOpen, setModalOpen] = useState(false)
   const [editingStudent, setEditingStudent] = useState<Student | null>(null)
   const [viewingStudent, setViewingStudent] = useState<Student | null>(null)
   const [deletingStudent, setDeletingStudent] = useState<Student | null>(null)
   const [isExporting, setIsExporting] = useState(false)
+
+  const [importModalOpen, setImportModalOpen] = useState(false)
+  const [importDepartment, setImportDepartment] = useState('all')
+  const [importProgram, setImportProgram] = useState('all')
+  const [importFile, setImportFile] = useState<File | null>(null)
+  const [isDownloadingTemplate, setIsDownloadingTemplate] = useState(false)
+  const [isImporting, setIsImporting] = useState(false)
+  const [importResult, setImportResult] = useState<ImportSummary | null>(null)
 
   const {
     register,
@@ -77,9 +91,14 @@ export default function StudentsPage() {
     setLoading(true)
     setLoadError('')
     try {
-      const [studentRows, programRows] = await Promise.all([studentsApi.list(), programsApi.list()])
+      const [studentRows, programRows, departmentRows] = await Promise.all([
+        studentsApi.list(),
+        programsApi.list(),
+        departmentsApi.list(),
+      ])
       setStudents(studentRows)
       setPrograms(programRows)
+      setDepartments(departmentRows)
     } catch (err) {
       setLoadError(err instanceof ApiRequestError ? err.message : 'Failed to load students.')
     } finally {
@@ -95,6 +114,26 @@ export default function StudentsPage() {
     return programs.find((p) => p.id === programId)?.name ?? 'Unknown program'
   }
 
+  function departmentIdForProgram(programId: string) {
+    return programs.find((p) => p.id === programId)?.departmentId
+  }
+
+  function departmentName(programId: string) {
+    const deptId = departmentIdForProgram(programId)
+    return departments.find((d) => d.id === deptId)?.name ?? 'Unknown department'
+  }
+
+  // Programs shown in the filter/import dropdowns narrow to the selected
+  // department, so picking a program can never disagree with it.
+  const filterProgramOptions = useMemo(
+    () => (filterDepartment === 'all' ? programs : programs.filter((p) => p.departmentId === filterDepartment)),
+    [programs, filterDepartment],
+  )
+  const importProgramOptions = useMemo(
+    () => (importDepartment === 'all' ? programs : programs.filter((p) => p.departmentId === importDepartment)),
+    [programs, importDepartment],
+  )
+
   const filtered = useMemo(() => {
     return students.filter((student) => {
       const q = searchQuery.trim().toLowerCase()
@@ -105,9 +144,12 @@ export default function StudentsPage() {
         student.studentId.toLowerCase().includes(q)
       const matchesYear = filterYear === 'all' || student.year === Number(filterYear)
       const matchesStatus = filterStatus === 'all' || student.status === filterStatus
-      return matchesSearch && matchesYear && matchesStatus
+      const matchesDepartment = filterDepartment === 'all' || departmentIdForProgram(student.programId) === filterDepartment
+      const matchesProgram = filterProgram === 'all' || student.programId === filterProgram
+      return matchesSearch && matchesYear && matchesStatus && matchesDepartment && matchesProgram
     })
-  }, [students, searchQuery, filterYear, filterStatus])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [students, programs, searchQuery, filterYear, filterStatus, filterDepartment, filterProgram])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
@@ -116,6 +158,8 @@ export default function StudentsPage() {
     setSearchQuery('')
     setFilterYear('all')
     setFilterStatus('all')
+    setFilterDepartment('all')
+    setFilterProgram('all')
     setPage(1)
   }
 
@@ -181,12 +225,62 @@ export default function StudentsPage() {
   function exportStudents() {
     setIsExporting(true)
     try {
-      downloadCsv(filtered, programName)
+      downloadCsv(filtered, programName, departmentName)
       showToast(`Exported ${filtered.length} students to CSV.`)
     } catch {
       showToast('Failed to export students.', 'error')
     } finally {
       setIsExporting(false)
+    }
+  }
+
+  function openImport() {
+    setImportDepartment('all')
+    setImportProgram('all')
+    setImportFile(null)
+    setImportResult(null)
+    setImportModalOpen(true)
+  }
+
+  function closeImportModal() {
+    setImportModalOpen(false)
+    setImportFile(null)
+    setImportResult(null)
+  }
+
+  async function downloadTemplate() {
+    setIsDownloadingTemplate(true)
+    try {
+      const { blob, filename } = await studentsApi.importTemplate({
+        departmentId: importDepartment === 'all' ? undefined : importDepartment,
+        programId: importProgram === 'all' ? undefined : importProgram,
+      })
+      triggerBlobDownload(blob, filename)
+    } catch (err) {
+      showToast(err instanceof ApiRequestError ? err.message : 'Failed to download the template.', 'error')
+    } finally {
+      setIsDownloadingTemplate(false)
+    }
+  }
+
+  async function submitImport() {
+    if (!importFile) return
+    setIsImporting(true)
+    setImportResult(null)
+    try {
+      const result = await studentsApi.importStudents(importFile)
+      setImportResult(result)
+      if (result.createdCount > 0) {
+        await loadData()
+        setPage(1)
+      }
+      if (result.failedCount === 0) {
+        showToast(`Imported ${result.createdCount} student${result.createdCount === 1 ? '' : 's'}.`)
+      }
+    } catch (err) {
+      showToast(err instanceof ApiRequestError ? err.message : 'Failed to import the file.', 'error')
+    } finally {
+      setIsImporting(false)
     }
   }
 
@@ -217,12 +311,20 @@ export default function StudentsPage() {
           <p className="mt-2 text-sm text-[#64748b]">Manage and monitor all enrolled students across programs.</p>
         </div>
         {canManage && (
-          <button
-            onClick={openCreate}
-            className="flex w-fit items-center gap-2 rounded-lg bg-[#0f172a] px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#1e293b]"
-          >
-            <Plus size={15} /> Add student
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={openImport}
+              className="flex w-fit items-center gap-2 rounded-lg border border-[#e2e8f0] bg-[#ffffff] px-4 py-2.5 text-xs font-semibold text-[#475569] shadow-sm transition hover:bg-[#f1f5f9]"
+            >
+              <Upload size={15} /> Import students
+            </button>
+            <button
+              onClick={openCreate}
+              className="flex w-fit items-center gap-2 rounded-lg bg-[#0f172a] px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#1e293b]"
+            >
+              <Plus size={15} /> Add student
+            </button>
+          </div>
         )}
       </div>
 
@@ -242,6 +344,37 @@ export default function StudentsPage() {
             />
           </div>
         </div>
+        <select
+          value={filterDepartment}
+          onChange={(e) => {
+            setFilterDepartment(e.target.value)
+            setFilterProgram('all')
+            setPage(1)
+          }}
+          className="rounded border border-[#e2e8f0] bg-[#ffffff] px-3 py-2 text-xs text-[#475569] outline-none"
+        >
+          <option value="all">All Departments</option>
+          {departments.map((d) => (
+            <option key={d.id} value={d.id}>
+              {d.name}
+            </option>
+          ))}
+        </select>
+        <select
+          value={filterProgram}
+          onChange={(e) => {
+            setFilterProgram(e.target.value)
+            setPage(1)
+          }}
+          className="rounded border border-[#e2e8f0] bg-[#ffffff] px-3 py-2 text-xs text-[#475569] outline-none"
+        >
+          <option value="all">All Programs</option>
+          {filterProgramOptions.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
         <select
           value={filterYear}
           onChange={(e) => {
@@ -312,6 +445,7 @@ export default function StudentsPage() {
                   <tr className="border-b border-[#e2e8f0] bg-[#f1f5f9]">
                     <th className="px-5 py-3 text-left font-semibold text-[#475569]">Student</th>
                     <th className="px-5 py-3 text-left font-semibold text-[#475569]">ID</th>
+                    <th className="px-5 py-3 text-left font-semibold text-[#475569]">Department</th>
                     <th className="px-5 py-3 text-left font-semibold text-[#475569]">Program</th>
                     <th className="px-5 py-3 text-left font-semibold text-[#475569]">Year</th>
                     <th className="px-5 py-3 text-left font-semibold text-[#475569]">Status</th>
@@ -327,6 +461,7 @@ export default function StudentsPage() {
                         <p className="text-xs text-[#94a3b8]">{student.email}</p>
                       </td>
                       <td className="px-5 py-4 text-[#475569]">{student.studentId}</td>
+                      <td className="px-5 py-4 text-[#475569]">{departmentName(student.programId)}</td>
                       <td className="px-5 py-4 text-[#475569]">{programName(student.programId)}</td>
                       <td className="px-5 py-4 text-[#475569]">{student.year}</td>
                       <td className="px-5 py-4">
@@ -479,6 +614,10 @@ export default function StudentsPage() {
               <dd className="font-semibold text-[#0f172a]">{viewingStudent.email}</dd>
             </div>
             <div className="flex justify-between border-b border-[#e2e8f0] pb-2">
+              <dt className="text-[#64748b]">Department</dt>
+              <dd className="font-semibold text-[#0f172a]">{departmentName(viewingStudent.programId)}</dd>
+            </div>
+            <div className="flex justify-between border-b border-[#e2e8f0] pb-2">
               <dt className="text-[#64748b]">Program</dt>
               <dd className="font-semibold text-[#0f172a]">{programName(viewingStudent.programId)}</dd>
             </div>
@@ -501,6 +640,148 @@ export default function StudentsPage() {
               <dd className="font-semibold text-[#0f172a]">{viewingStudent.enrollDate}</dd>
             </div>
           </dl>
+        )}
+      </Modal>
+
+      <Modal
+        open={importModalOpen}
+        title="Import students"
+        description="Add a whole class or department roster at once from a spreadsheet, instead of one at a time."
+        onClose={closeImportModal}
+        widthClassName="max-w-xl"
+      >
+        {importResult ? (
+          <div>
+            <div className="mb-4 flex items-center gap-4 border border-[#e2e8f0] bg-[#f8fafc] p-4">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 size={18} className="text-[#16a34a]" />
+                <div>
+                  <p className="font-display text-lg font-bold text-[#0f172a]">{importResult.createdCount}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-[#64748b]">Imported</p>
+                </div>
+              </div>
+              <div className="h-8 w-px bg-[#e2e8f0]" />
+              <div className="flex items-center gap-2">
+                <XCircle size={18} className={importResult.failedCount > 0 ? 'text-[#dc2626]' : 'text-[#94a3b8]'} />
+                <div>
+                  <p className="font-display text-lg font-bold text-[#0f172a]">{importResult.failedCount}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-[#64748b]">Skipped</p>
+                </div>
+              </div>
+              <p className="ml-auto text-xs text-[#94a3b8]">{importResult.totalRows} row{importResult.totalRows === 1 ? '' : 's'} read</p>
+            </div>
+
+            {importResult.failedCount > 0 && (
+              <div className="mb-4">
+                <p className="mb-2 text-xs font-semibold text-[#475569]">Skipped rows — fix these and re-upload if needed</p>
+                <div className="max-h-60 overflow-y-auto border border-[#e2e8f0]">
+                  {importResult.results
+                    .filter((r) => r.status === 'failed')
+                    .map((r) => (
+                      <div key={r.row} className="flex items-start gap-3 border-b border-[#e2e8f0] px-3 py-2 text-xs last:border-b-0">
+                        <span className="mt-0.5 shrink-0 rounded bg-[#f1f5f9] px-1.5 py-0.5 font-mono text-[10px] text-[#64748b]">Row {r.row}</span>
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold text-[#0f172a]">{r.name ?? r.email ?? 'Unreadable row'}</p>
+                          <p className="text-[#dc2626]">{r.error}</p>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={openImport}
+                className="rounded-lg border border-[#e2e8f0] px-4 py-2 text-xs font-semibold text-[#475569] hover:bg-[#f1f5f9]"
+              >
+                Import another file
+              </button>
+              <button
+                onClick={closeImportModal}
+                className="rounded-lg bg-[#0f172a] px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[#1e293b]"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <div className="mb-5 border border-[#e2e8f0] p-4">
+              <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[#475569]">Step 1 — Get the template</p>
+              <p className="mb-3 text-xs text-[#64748b]">
+                Optionally narrow it to one department or program — the file will list only matching program codes as a
+                reference, so there's less guessing when you fill it in.
+              </p>
+              <div className="mb-3 grid grid-cols-2 gap-3">
+                <select
+                  value={importDepartment}
+                  onChange={(e) => {
+                    setImportDepartment(e.target.value)
+                    setImportProgram('all')
+                  }}
+                  className={inputClassName}
+                >
+                  <option value="all">All departments</option>
+                  {departments.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+                <select value={importProgram} onChange={(e) => setImportProgram(e.target.value)} className={inputClassName}>
+                  <option value="all">All programs</option>
+                  {importProgramOptions.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button
+                onClick={downloadTemplate}
+                disabled={isDownloadingTemplate}
+                className="flex items-center gap-2 rounded-lg border border-[#e2e8f0] bg-white px-3 py-2 text-xs font-semibold text-[#475569] hover:bg-[#f1f5f9] disabled:opacity-60"
+              >
+                {isDownloadingTemplate ? <Loader2 size={14} className="animate-spin" /> : <FileSpreadsheet size={14} />}
+                {isDownloadingTemplate ? 'Preparing template...' : 'Download .xlsx template'}
+              </button>
+            </div>
+
+            <div className="mb-5 border border-[#e2e8f0] p-4">
+              <p className="mb-3 text-xs font-bold uppercase tracking-wide text-[#475569]">Step 2 — Upload the completed file</p>
+              <label className="flex cursor-pointer items-center gap-3 border border-dashed border-[#cbd5e1] bg-[#f8fafc] px-4 py-4 text-xs text-[#64748b] hover:bg-[#f1f5f9]">
+                <Upload size={16} className="shrink-0 text-[#475569]" />
+                <span className="min-w-0 flex-1 truncate">
+                  {importFile ? <span className="font-semibold text-[#0f172a]">{importFile.name}</span> : 'Choose a .xlsx or .csv file...'}
+                </span>
+                <input
+                  type="file"
+                  accept=".xlsx,.csv"
+                  className="hidden"
+                  onChange={(e) => setImportFile(e.target.files?.[0] ?? null)}
+                />
+              </label>
+              <p className="mt-2 text-[10px] text-[#94a3b8]">
+                Each row is validated independently — rows with a problem (bad email, unknown program code, a duplicate ID)
+                are skipped and listed after upload; everything else is still imported.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button onClick={closeImportModal} className="rounded-lg border border-[#e2e8f0] px-4 py-2 text-xs font-semibold text-[#475569] hover:bg-[#f1f5f9]">
+                Cancel
+              </button>
+              <button
+                onClick={submitImport}
+                disabled={!importFile || isImporting}
+                className="flex items-center gap-2 rounded-lg bg-[#0f172a] px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[#1e293b] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isImporting && <Loader2 size={14} className="animate-spin" />}
+                {isImporting ? 'Importing...' : 'Upload & import'}
+              </button>
+            </div>
+          </div>
         )}
       </Modal>
 

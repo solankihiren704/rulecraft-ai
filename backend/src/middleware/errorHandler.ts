@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from 'express'
+import { MulterError } from 'multer'
 import { ZodError } from 'zod'
 import { isProduction } from '@/config/env'
 import { logger } from '@/utils/logger'
@@ -35,6 +36,11 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
       errors[issue.path.join('.') || 'value'] = issue.message
     }
     return res.status(400).json({ success: false, message: 'Validation failed', errors })
+  }
+
+  if (err instanceof MulterError) {
+    const message = err.code === 'LIMIT_FILE_SIZE' ? 'File is too large — the limit is 5MB.' : err.message
+    return res.status(400).json({ success: false, message })
   }
 
   if (err instanceof ApiError) {

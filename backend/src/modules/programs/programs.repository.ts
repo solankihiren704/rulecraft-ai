@@ -27,6 +27,18 @@ export function remove(id: string) {
   return prisma.program.delete({ where: { id } })
 }
 
+export function findManyByCodes(codes: string[]) {
+  return prisma.program.findMany({ where: { code: { in: codes } } })
+}
+
+export function listWithDepartmentName(filters: { departmentId?: string }) {
+  return prisma.program.findMany({
+    where: { departmentId: filters.departmentId },
+    include: { department: { select: { name: true } } },
+    orderBy: { name: 'asc' },
+  })
+}
+
 export function countChildren(programId: string) {
   return Promise.all([
     prisma.semester.count({ where: { programId } }),

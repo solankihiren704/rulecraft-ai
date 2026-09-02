@@ -8,6 +8,26 @@ export interface ListStudentsParams {
   status?: StudentStatus
 }
 
+export interface ImportTemplateParams {
+  departmentId?: string
+  programId?: string
+}
+
+export interface ImportRowResult {
+  row: number
+  status: 'created' | 'failed'
+  name?: string
+  email?: string
+  error?: string
+}
+
+export interface ImportSummary {
+  totalRows: number
+  createdCount: number
+  failedCount: number
+  results: ImportRowResult[]
+}
+
 export interface StudentInput {
   name: string
   email: string
@@ -40,4 +60,20 @@ export async function update(id: string, input: StudentInput): Promise<Student> 
 
 export async function remove(id: string): Promise<void> {
   await apiClient.delete(`/students/${id}`)
+}
+
+export async function importTemplate(params?: ImportTemplateParams): Promise<{ blob: Blob; filename: string }> {
+  const res = await apiClient.get<Blob>('/students/import/template', { params, responseType: 'blob' })
+  const disposition = res.headers['content-disposition'] as string | undefined
+  const match = disposition?.match(/filename="([^"]+)"/)
+  return { blob: res.data, filename: match?.[1] ?? 'student-import-template.xlsx' }
+}
+
+export async function importStudents(file: File): Promise<ImportSummary> {
+  const form = new FormData()
+  form.append('file', file)
+  const res = await apiClient.post<{ success: true; data: ImportSummary }>('/students/import', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return res.data.data
 }

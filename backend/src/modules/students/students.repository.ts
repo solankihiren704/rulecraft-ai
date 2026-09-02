@@ -82,3 +82,25 @@ export function update(id: string, data: UpdateStudentInput) {
 export function remove(id: string) {
   return prisma.student.delete({ where: { id } })
 }
+
+export function findExisting(emails: string[], studentIds: string[]) {
+  return prisma.student.findMany({
+    where: { OR: [{ email: { in: emails } }, { studentId: { in: studentIds } }] },
+    select: { email: true, studentId: true },
+  })
+}
+
+export interface ImportRow {
+  name: string
+  email: string
+  studentId: string
+  programId: string
+  year: number
+  status: StudentStatus
+  gpa: number
+  enrollDate: Date
+}
+
+export function createMany(rows: ImportRow[]) {
+  return prisma.student.createMany({ data: rows })
+}

@@ -19,6 +19,23 @@ export const listStudentsQuerySchema = z.object({
   status: z.enum(['active', 'suspended', 'graduated']).optional(),
 })
 
+export const importStudentRowSchema = z.object({
+  name: z.string().trim().min(2, 'Name must be at least 2 characters.'),
+  email: z.string().trim().min(1, 'Email is required.').email('Enter a valid email address.'),
+  studentId: z.string().trim().min(3, 'Student ID is required.'),
+  programCode: z.string().trim().min(1, 'Program code is required.').toUpperCase(),
+  year: z.coerce.number().int().min(1, 'Year must be at least 1.').max(6, 'Year cannot exceed 6.'),
+  status: z.enum(['active', 'suspended', 'graduated']).default('active'),
+  gpa: z.coerce.number().min(0, 'GPA cannot be negative.').max(10, 'GPA cannot exceed 10.'),
+})
+
+export const importTemplateQuerySchema = z.object({
+  departmentId: z.string().uuid().optional(),
+  programId: z.string().uuid().optional(),
+})
+
 export type CreateStudentInput = z.infer<typeof createStudentSchema>
 export type UpdateStudentInput = z.infer<typeof updateStudentSchema>
 export type ListStudentsQuery = z.infer<typeof listStudentsQuerySchema>
+export type ImportStudentRow = z.infer<typeof importStudentRowSchema>
+export type ImportTemplateQuery = z.infer<typeof importTemplateQuerySchema>

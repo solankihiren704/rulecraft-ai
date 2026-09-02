@@ -1,6 +1,8 @@
 import { apiClient } from './client'
 import type { ReportFormat, ReportSummary, ReportType } from '@/types'
 
+export { triggerBlobDownload } from '@/utils/download'
+
 export interface GenerateReportInput {
   reportType: ReportType
   programId: string
@@ -34,13 +36,3 @@ export async function download(id: string, fallbackFilename: string): Promise<Do
   return { blob: res.data, filename: match?.[1] ?? fallbackFilename }
 }
 
-export function triggerBlobDownload(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = filename
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  URL.revokeObjectURL(url)
-}

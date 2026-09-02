@@ -2,6 +2,8 @@ import type { Request, Response } from 'express'
 import { ApiError } from '@/middleware/errorHandler'
 import { created, noContent, ok } from '@/utils/apiResponse'
 import * as service from './students.service'
+import { parseImportRows } from './students.import'
+import type { ImportTemplateQuery } from './students.validators'
 
 function requireUser(req: Request) {
   if (!req.user) throw new ApiError(401, 'Authentication required')
@@ -33,4 +35,19 @@ export async function update(req: Request, res: Response) {
 export async function remove(req: Request, res: Response) {
   await service.remove(req.params.id as string)
   return noContent(res)
+}
+
+export async function importTemplate(req: Request, res: Response) {
+  const query = req.query as unknown as ImportTemplateQuery
+  const buffer = await service.buildTemplate(query)
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+  res.setHeader('Content-Disposition', 'attachment; filename="student-import-template.xlsx"')
+  return res.send(buffer)
+}
+
+export async function importStudents(req: Request, res: Response) {
+  if (!req.file) throw new ApiError(400, 'Attach a .xlsx or .csv file to import.')
+  const rows = await parseImportRows(req.file.buffer, req.file.originalname)
+  const summary = await service.importStudents(rows)
+  return ok(res, summary)
 }
