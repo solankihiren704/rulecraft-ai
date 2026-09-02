@@ -22,6 +22,15 @@ import { useToast } from '@/contexts/ToastContext'
 import { notifications as initialNotifications } from '@/services/mockData'
 import CommandPalette from '@/components/CommandPalette'
 import AiAssistantBubble from '@/components/AiAssistantBubble'
+import Modal from '@/components/ui/Modal'
+
+const ROLE_LABELS: Record<string, string> = {
+  super_admin: 'Super Admin',
+  registrar: 'Registrar',
+  hod: 'HOD',
+  faculty: 'Faculty',
+  student: 'Student',
+}
 
 const navigation = [
   { label: 'Command center', path: '/', icon: LayoutDashboard },
@@ -46,7 +55,9 @@ export default function MainLayout() {
   const [organization, setOrganization] = useState('Northbridge University')
   const [notifications, setNotifications] = useState(initialNotifications)
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
 
+  const canAdminister = user?.role === 'super_admin' || user?.role === 'registrar'
   const unreadCount = notifications.filter((n) => !n.read).length
 
   useEffect(() => {
@@ -159,14 +170,16 @@ export default function MainLayout() {
             ))}
           </nav>
           <div className="px-6 pb-7">
-            <div className="mb-6 border-t border-[#1e293b] pt-5">
-              <button
-                onClick={() => showToast('Administration settings are available.')}
-                className="flex items-center gap-3 py-2 text-[13px] text-[#94a3b8]"
-              >
-                <Settings2 size={17} /> Administration
-              </button>
-            </div>
+            {canAdminister && (
+              <div className="mb-6 border-t border-[#1e293b] pt-5">
+                <button
+                  onClick={() => selectNavigation('/users')}
+                  className="flex items-center gap-3 py-2 text-[13px] text-[#94a3b8] hover:text-white"
+                >
+                  <Settings2 size={17} /> Administration
+                </button>
+              </div>
+            )}
             <div className="relative">
               <button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
@@ -190,7 +203,7 @@ export default function MainLayout() {
                   <button
                     onClick={() => {
                       setUserMenuOpen(false)
-                      showToast('Profile opened.')
+                      setProfileOpen(true)
                     }}
                     className="w-full px-3 py-2 text-left text-[#475569] hover:bg-[#f1f5f9]"
                   >
@@ -325,6 +338,41 @@ export default function MainLayout() {
 
       <CommandPalette open={commandPaletteOpen} onClose={() => setCommandPaletteOpen(false)} />
       <AiAssistantBubble />
+
+      <Modal open={profileOpen} title="My profile" onClose={() => setProfileOpen(false)} widthClassName="max-w-sm">
+        <div className="flex flex-col items-center text-center">
+          <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-[#f59e0b] text-lg font-bold text-[#1e293b]">
+            {user?.avatarInitials ?? '—'}
+          </div>
+          <p className="font-display text-lg font-bold text-[#0f172a]">{user?.name ?? 'Guest'}</p>
+          <p className="text-xs text-[#64748b]">{user?.email}</p>
+        </div>
+        <dl className="mt-5 space-y-3 text-sm">
+          <div className="flex justify-between border-b border-[#e2e8f0] pb-2">
+            <dt className="text-[#64748b]">Role</dt>
+            <dd className="font-semibold text-[#0f172a]">{user ? ROLE_LABELS[user.role] ?? user.role : '—'}</dd>
+          </div>
+          {user?.department && (
+            <div className="flex justify-between border-b border-[#e2e8f0] pb-2">
+              <dt className="text-[#64748b]">Department</dt>
+              <dd className="font-semibold text-[#0f172a]">{user.department}</dd>
+            </div>
+          )}
+          <div className="flex justify-between">
+            <dt className="text-[#64748b]">Organization</dt>
+            <dd className="font-semibold text-[#0f172a]">{organization}</dd>
+          </div>
+        </dl>
+        <button
+          onClick={() => {
+            setProfileOpen(false)
+            handleLogout()
+          }}
+          className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg border border-[#e2e8f0] px-4 py-2.5 text-xs font-semibold text-[#dc2626] hover:bg-[#fee2e2]"
+        >
+          <LogOut size={14} /> Log out
+        </button>
+      </Modal>
     </main>
   )
 }
