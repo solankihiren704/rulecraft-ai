@@ -3,9 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import {
   AlertCircle,
   ArrowUpRight,
+  BookOpenCheck,
   CheckCircle2,
+  ClipboardCheck,
   FlaskConical,
+  GitBranch,
   GitCommitHorizontal,
+  GraduationCap,
   MoreHorizontal,
   Sparkles,
 } from 'lucide-react'
@@ -47,6 +51,18 @@ function SkeletonBlock({ className }: { className: string }) {
   return <div className={`animate-pulse bg-[#e2e8f0] ${className}`} />
 }
 
+const NAME_TITLES = new Set(['dr', 'mr', 'mrs', 'ms', 'prof'])
+
+// "Dr. Meera Nair".split(' ')[0] is "Dr." — a title, not a name, and one
+// that already ends in a period, which doubled up with the greeting's own
+// "." into "Good morning, Dr..". Skip a leading title and strip any
+// trailing period so the greeting's period is never duplicated.
+function greetingName(fullName: string): string {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean)
+  const first = parts.find((part, i) => !(i === 0 && NAME_TITLES.has(part.replace(/\.$/, '').toLowerCase())))
+  return (first ?? parts[0] ?? 'there').replace(/\.$/, '')
+}
+
 function timeAgo(iso: string): string {
   const diffMin = Math.round((Date.now() - new Date(iso).getTime()) / 60000)
   if (diffMin < 1) return 'just now'
@@ -57,10 +73,21 @@ function timeAgo(iso: string): string {
   return diffDay === 1 ? 'Yesterday' : `${diffDay} days ago`
 }
 
+type KpiKind = 'students' | 'checks' | 'eligible' | 'rules' | 'regulations'
+
 interface KpiTile {
   label: string
   value: number
   detail: string
+  kind: KpiKind
+}
+
+const kpiIcon: Record<KpiKind, typeof GraduationCap> = {
+  students: GraduationCap,
+  checks: ClipboardCheck,
+  eligible: CheckCircle2,
+  rules: GitBranch,
+  regulations: BookOpenCheck,
 }
 
 function buildKpis(summary: DashboardSummary): KpiTile[] {
@@ -72,18 +99,18 @@ function buildKpis(summary: DashboardSummary): KpiTile[] {
     // sense for a single student, so the four tiles are the metrics that
     // are genuinely about them or genuinely visible to them.
     return [
-      { label: 'Your eligibility checks', value: summary.simulations.total, detail: 'last 30 days shown below' },
-      { label: 'Eligible outcomes', value: eligibleCount, detail: 'of your checks' },
-      { label: 'Published regulations', value: publishedCount, detail: 'visible to you' },
-      { label: 'Visible rules', value: summary.rules.total, detail: `${summary.rules.active} active` },
+      { label: 'Your eligibility checks', value: summary.simulations.total, detail: 'last 30 days shown below', kind: 'checks' },
+      { label: 'Eligible outcomes', value: eligibleCount, detail: 'of your checks', kind: 'eligible' },
+      { label: 'Published regulations', value: publishedCount, detail: 'visible to you', kind: 'regulations' },
+      { label: 'Visible rules', value: summary.rules.total, detail: `${summary.rules.active} active`, kind: 'rules' },
     ]
   }
 
   return [
-    { label: 'Active students', value: summary.students.active, detail: `${summary.students.total} total` },
-    { label: 'Eligibility checks', value: summary.simulations.total, detail: 'all time' },
-    { label: 'Rules', value: summary.rules.total, detail: `${summary.rules.active} active` },
-    { label: 'Regulations', value: summary.regulations.total, detail: `${publishedCount} published` },
+    { label: 'Active students', value: summary.students.active, detail: `${summary.students.total} total`, kind: 'students' },
+    { label: 'Eligibility checks', value: summary.simulations.total, detail: 'all time', kind: 'checks' },
+    { label: 'Rules', value: summary.rules.total, detail: `${summary.rules.active} active`, kind: 'rules' },
+    { label: 'Regulations', value: summary.regulations.total, detail: `${publishedCount} published`, kind: 'regulations' },
   ]
 }
 
@@ -112,7 +139,7 @@ export default function DashboardPage() {
     loadData()
   }, [])
 
-  const firstName = user?.name.split(' ')[0] ?? 'there'
+  const firstName = user ? greetingName(user.name) : 'there'
   const isStudent = !summary?.students
 
   const kpis = useMemo(() => (summary ? buildKpis(summary) : []), [summary])
@@ -156,7 +183,7 @@ export default function DashboardPage() {
           <h1 className="font-display text-[32px] font-bold tracking-[-0.04em] text-[#0f172a] sm:text-[38px]">
             Good morning, {firstName}.
           </h1>
-          <p className="mt-2 text-sm text-[#64748b]">Here is what is happening across your academic ecosystem.</p>
+          <p className="mt-2 text-sm font-medium text-[#475569]">Here is what is happening across your academic ecosystem.</p>
         </div>
         <button
           onClick={() => navigate('/simulator')}
@@ -169,13 +196,21 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {kpis.map((kpi) => (
-          <div key={kpi.label} className="border border-[#e2e8f0] bg-[#ffffff] p-5">
-            <p className="mb-5 text-xs font-semibold text-[#64748b]">{kpi.label}</p>
-            <p className="font-display text-[30px] font-bold tracking-[-0.04em] text-[#0f172a]">{kpi.value.toLocaleString()}</p>
-            <p className="mt-1 text-[11px] text-[#94a3b8]">{kpi.detail}</p>
-          </div>
-        ))}
+        {kpis.map((kpi) => {
+          const Icon = kpiIcon[kpi.kind]
+          return (
+            <div key={kpi.label} className="border border-[#e2e8f0] bg-[#ffffff] p-5">
+              <div className="mb-4 flex items-center gap-2.5">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#e0e7ff] text-[#4f46e5]">
+                  <Icon size={15} />
+                </div>
+                <p className="text-xs font-semibold text-[#64748b]">{kpi.label}</p>
+              </div>
+              <p className="font-display text-[30px] font-bold tracking-[-0.04em] text-[#0f172a]">{kpi.value.toLocaleString()}</p>
+              <p className="mt-1 text-[11px] text-[#94a3b8]">{kpi.detail}</p>
+            </div>
+          )
+        })}
       </div>
 
       <div className="mt-8 grid gap-5 xl:grid-cols-[1.4fr_1fr]">
@@ -222,9 +257,16 @@ export default function DashboardPage() {
             </div>
           </div>
           {chartData.length === 0 ? (
-            <div className="flex h-[220px] items-center justify-center text-xs text-[#94a3b8]">
-              No eligibility checks in the last 30 days.
-            </div>
+            <EmptyState
+              icon={FlaskConical}
+              title="No eligibility checks in the last 30 days"
+              description={
+                isStudent
+                  ? 'Run a what-if check in the Simulator to see your eligibility activity here.'
+                  : 'Once eligibility checks are run, activity over the last 30 days will show up here.'
+              }
+              action={{ label: 'Run eligibility check', onClick: () => navigate('/simulator') }}
+            />
           ) : (
             <div className="h-[220px]">
               <ResponsiveContainer width="100%" height="100%">

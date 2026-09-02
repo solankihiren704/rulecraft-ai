@@ -209,7 +209,7 @@ export default function MainLayout() {
             <div className="flex items-center gap-5">
               <button
                 onClick={() => setCommandPaletteOpen(true)}
-                className="hidden items-center gap-2 border-b border-[#cbd5e1] pb-1 text-[#64748b] hover:border-[#64748b] hover:text-[#475569] md:flex"
+                className="hidden h-9 items-center gap-2 border-b border-[#cbd5e1] text-[#64748b] hover:border-[#64748b] hover:text-[#475569] md:flex"
               >
                 <Search size={16} />
                 <span className="text-xs">Search anything</span>
@@ -217,13 +217,17 @@ export default function MainLayout() {
                   ⌘ K
                 </kbd>
               </button>
-              <button onClick={() => setCommandPaletteOpen(true)} className="text-[#475569] md:hidden" aria-label="Search">
+              <button
+                onClick={() => setCommandPaletteOpen(true)}
+                className="flex h-9 w-9 items-center justify-center text-[#475569] md:hidden"
+                aria-label="Search"
+              >
                 <Search size={19} />
               </button>
-              <div className="relative">
+              <div className="relative flex h-9 items-center">
                 <button
                   onClick={() => setNotificationsOpen(!notificationsOpen)}
-                  className="relative text-[#475569]"
+                  className="relative flex h-9 w-9 items-center justify-center text-[#475569]"
                   aria-label="Notifications"
                   aria-haspopup="menu"
                   aria-expanded={notificationsOpen}
@@ -259,10 +263,10 @@ export default function MainLayout() {
                 )}
               </div>
               <div className="hidden h-7 w-px bg-[#e2e8f0] sm:block" />
-              <div className="relative">
+              <div className="relative flex h-9 items-center">
                 <button
                   onClick={() => setOrganizationOpen(!organizationOpen)}
-                  className="flex items-center gap-2 text-sm font-semibold"
+                  className="flex h-9 items-center gap-2 text-sm font-semibold"
                   aria-haspopup="menu"
                   aria-expanded={organizationOpen}
                 >
@@ -290,10 +294,10 @@ export default function MainLayout() {
                 )}
               </div>
               <div className="hidden h-7 w-px bg-[#e2e8f0] sm:block" />
-              <div className="relative">
+              <div className="relative flex h-9 items-center">
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center gap-2.5"
+                  className="flex h-9 items-center gap-2.5"
                   aria-haspopup="menu"
                   aria-expanded={userMenuOpen}
                 >
