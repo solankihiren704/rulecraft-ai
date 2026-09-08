@@ -25,6 +25,14 @@ export function findById(id: string) {
   return prisma.semester.findUnique({ where: { id } })
 }
 
+// No unique constraint on Semester in the schema (unlike Department/Program
+// code or Subject's (semesterId, code)) — (programId, name) is the natural
+// de-dup key for bulk import, matching how a semester is actually named in
+// practice ("Semester 1" within a given program).
+export function findByProgramAndName(programId: string, name: string) {
+  return prisma.semester.findFirst({ where: { programId, name: { equals: name, mode: 'insensitive' } } })
+}
+
 export function create(input: CreateSemesterInput) {
   return prisma.semester.create({ data: toPrismaData(input) })
 }

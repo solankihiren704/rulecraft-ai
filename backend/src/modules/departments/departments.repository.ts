@@ -12,6 +12,10 @@ export function findById(id: string) {
   return prisma.department.findUnique({ where: { id } })
 }
 
+export function findByCode(code: string) {
+  return prisma.department.findUnique({ where: { code } })
+}
+
 export function create(data: CreateDepartmentInput) {
   return prisma.department.create({ data })
 }

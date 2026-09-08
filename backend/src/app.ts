@@ -14,6 +14,7 @@ import { departmentsRouter } from '@/modules/departments/departments.routes'
 import { programsRouter } from '@/modules/programs/programs.routes'
 import { semestersRouter } from '@/modules/semesters/semesters.routes'
 import { subjectsRouter } from '@/modules/subjects/subjects.routes'
+import { academicStructureRouter } from '@/modules/academic-structure/academic-structure.routes'
 import { regulationsRouter } from '@/modules/regulations/regulations.routes'
 import { rulesRouter } from '@/modules/rules/rules.routes'
 import { simulatorRouter } from '@/modules/simulator/simulator.routes'
@@ -62,6 +63,7 @@ export function createApp() {
   app.use('/api/programs', programsRouter)
   app.use('/api/semesters', semestersRouter)
   app.use('/api/subjects', subjectsRouter)
+  app.use('/api/academic-structure', academicStructureRouter)
   app.use('/api/regulations', regulationsRouter)
   app.use('/api/rules', rulesRouter)
   app.use('/api/simulator', simulatorRouter)

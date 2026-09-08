@@ -1,48 +1,8 @@
-import type { AiMessage, AuthUser, Department, NotificationItem, Program, Semester, SimulationResult, Student, Subject } from '@/types'
+import type { AiMessage, AuthUser, NotificationItem, SimulationResult } from '@/types'
 
-// Centralized mock data (Phase 1 — no backend yet). Every feature page reads
-// from here so cross-references (department -> program -> student counts,
-// regulation -> rules, etc.) stay consistent across the app instead of each
-// page inventing its own disconnected numbers.
-
-export const departments: Department[] = [
-  { id: 'dept-cse', name: 'Computer Science', code: 'CSE' },
-  { id: 'dept-ece', name: 'Electronics', code: 'ECE' },
-  { id: 'dept-me', name: 'Mechanical Engineering', code: 'ME' },
-  { id: 'dept-ce', name: 'Civil Engineering', code: 'CE' },
-]
-
-export const programs: Program[] = [
-  { id: 'prog-btcs', name: 'B.Tech Computer Science', code: 'BTCS', departmentId: 'dept-cse', years: 4 },
-  { id: 'prog-mtcs', name: 'M.Tech Computer Science', code: 'MTCS', departmentId: 'dept-cse', years: 2 },
-  { id: 'prog-bte', name: 'B.Tech Electronics', code: 'BTE', departmentId: 'dept-ece', years: 4 },
-  { id: 'prog-btm', name: 'B.Tech Mechanical', code: 'BTM', departmentId: 'dept-me', years: 4 },
-  { id: 'prog-bce', name: 'B.Tech Civil', code: 'BCE', departmentId: 'dept-ce', years: 4 },
-]
-
-export const semesters: Semester[] = [
-  { id: 'sem-1', name: 'Semester 1', programId: 'prog-btcs', year: 1, startDate: '2024-01-08', endDate: '2024-04-30' },
-  { id: 'sem-2', name: 'Semester 2', programId: 'prog-btcs', year: 1, startDate: '2024-06-01', endDate: '2024-09-15' },
-  { id: 'sem-3', name: 'Semester 3', programId: 'prog-btcs', year: 2, startDate: '2024-01-08', endDate: '2024-04-30' },
-  { id: 'sem-4', name: 'Semester 1', programId: 'prog-bte', year: 1, startDate: '2024-01-08', endDate: '2024-04-30' },
-]
-
-export const subjects: Subject[] = [
-  { id: 'subj-1', code: 'CS101', name: 'Programming Fundamentals', credits: 4, semesterId: 'sem-1' },
-  { id: 'subj-2', code: 'CS102', name: 'Data Structures', credits: 4, semesterId: 'sem-1' },
-  { id: 'subj-3', code: 'CS201', name: 'Algorithms', credits: 4, semesterId: 'sem-3' },
-  { id: 'subj-4', code: 'CS202', name: 'Database Management', credits: 3, semesterId: 'sem-3' },
-]
-
-export const students: Student[] = [
-  { id: 'stu-1', name: 'Rajesh Kumar', email: 'rajesh.kumar@university.edu', studentId: 'STU2024001', programId: 'prog-btcs', year: 4, status: 'active', gpa: 3.8, enrollDate: '2020-08-15' },
-  { id: 'stu-2', name: 'Priya Sharma', email: 'priya.sharma@university.edu', studentId: 'STU2024002', programId: 'prog-bte', year: 3, status: 'active', gpa: 3.6, enrollDate: '2021-08-20' },
-  { id: 'stu-3', name: 'Ananya Patel', email: 'ananya.patel@university.edu', studentId: 'STU2024003', programId: 'prog-btcs', year: 2, status: 'active', gpa: 3.9, enrollDate: '2022-08-10' },
-  { id: 'stu-4', name: 'Arjun Singh', email: 'arjun.singh@university.edu', studentId: 'STU2024004', programId: 'prog-btm', year: 4, status: 'suspended', gpa: 2.1, enrollDate: '2020-08-15' },
-  { id: 'stu-5', name: 'Neha Gupta', email: 'neha.gupta@university.edu', studentId: 'STU2024005', programId: 'prog-bce', year: 1, status: 'active', gpa: 3.7, enrollDate: '2023-08-05' },
-  { id: 'stu-6', name: 'Vikram Rao', email: 'vikram.rao@university.edu', studentId: 'STU2024006', programId: 'prog-btcs', year: 3, status: 'active', gpa: 2.9, enrollDate: '2021-08-20' },
-  { id: 'stu-7', name: 'Ishita Bose', email: 'ishita.bose@university.edu', studentId: 'STU2024007', programId: 'prog-mtcs', year: 1, status: 'graduated', gpa: 3.95, enrollDate: '2019-08-15' },
-]
+// Centralized mock data (Phase 1 — no backend yet). Remaining consumers are
+// the pieces that still don't have a backend module (AI assistant,
+// notifications) — everything else now reads from the real API.
 
 export const authUsers: AuthUser[] = [
   { id: 'user-1', name: 'Aarav Kulkarni', email: 'aarav.kulkarni@rulecraft.edu', role: 'super_admin', avatarInitials: 'AK' },
@@ -88,12 +48,4 @@ export const simulationResults: SimulationResult[] = [
 // that isn't yet backed by a real database.
 export function nextId(prefix: string) {
   return `${prefix}-${Math.random().toString(36).slice(2, 9)}`
-}
-
-export function programName(programId: string) {
-  return programs.find((p) => p.id === programId)?.name ?? 'Unknown program'
-}
-
-export function departmentName(departmentId: string) {
-  return departments.find((d) => d.id === departmentId)?.name ?? 'Unknown department'
 }

@@ -15,6 +15,10 @@ export function findById(id: string) {
   return prisma.program.findUnique({ where: { id } })
 }
 
+export function findByCode(code: string) {
+  return prisma.program.findUnique({ where: { code } })
+}
+
 export function create(data: CreateProgramInput) {
   return prisma.program.create({ data })
 }
