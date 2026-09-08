@@ -6,7 +6,6 @@ import type {
   NotificationItem,
   Program,
   Regulation,
-  Rule,
   Semester,
   SimulationResult,
   Student,
@@ -139,65 +138,6 @@ export const regulations: Regulation[] = [
   },
 ]
 
-export const rules: Rule[] = [
-  {
-    id: 'rule-1',
-    regulationId: 'reg-1',
-    name: 'Minimum semester attendance',
-    type: 'attendance',
-    conditions: [{ id: 'c1', field: 'attendancePercent', operator: 'gte', value: '75' }],
-    outcome: 'Eligible to sit for semester exams',
-    active: true,
-  },
-  {
-    id: 'rule-2',
-    regulationId: 'reg-1',
-    name: 'Minimum passing marks per subject',
-    type: 'passing',
-    conditions: [{ id: 'c2', field: 'subjectMarks', operator: 'gte', value: '40' }],
-    outcome: 'Subject marked as passed',
-    active: true,
-  },
-  {
-    id: 'rule-3',
-    regulationId: 'reg-1',
-    name: 'Grace marks cap',
-    type: 'grace_marks',
-    conditions: [{ id: 'c3', field: 'shortfallMarks', operator: 'lte', value: '8' }],
-    outcome: 'Up to 8 grace marks applied per subject',
-    active: true,
-  },
-  {
-    id: 'rule-4',
-    regulationId: 'reg-3',
-    name: 'Backlog limit for promotion',
-    type: 'backlog',
-    conditions: [{ id: 'c4', field: 'activeBacklogs', operator: 'lte', value: '4' }],
-    outcome: 'Promoted to next year with active backlog',
-    active: true,
-  },
-  {
-    id: 'rule-5',
-    regulationId: 'reg-3',
-    name: 'CGPA threshold for promotion',
-    type: 'promotion',
-    conditions: [{ id: 'c5', field: 'cgpa', operator: 'gte', value: '5.0' }],
-    outcome: 'Eligible for promotion to next academic year',
-    active: true,
-  },
-  {
-    id: 'rule-6',
-    regulationId: 'reg-2',
-    name: 'Attendance shortfall condonation',
-    type: 'attendance',
-    conditions: [
-      { id: 'c6', field: 'attendancePercent', operator: 'gte', value: '65' },
-      { id: 'c7', field: 'medicalCertificate', operator: 'eq', value: 'true' },
-    ],
-    outcome: 'Condoned to eligible with HOD approval',
-    active: false,
-  },
-]
 
 export const authUsers: AuthUser[] = [
   { id: 'user-1', name: 'Aarav Kulkarni', email: 'aarav.kulkarni@rulecraft.edu', role: 'super_admin', avatarInitials: 'AK' },

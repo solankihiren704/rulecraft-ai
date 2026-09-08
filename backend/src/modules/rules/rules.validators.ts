@@ -1,10 +1,26 @@
 import { z } from 'zod'
+import type { ConditionNode } from '@/types'
 
-const conditionSchema = z.object({
+const leafConditionSchema = z.object({
+  type: z.literal('condition'),
   field: z.string().trim().min(1, 'Field is required.'),
   operator: z.enum(['gte', 'lte', 'gt', 'lt', 'eq', 'neq']),
   value: z.string().trim().min(1, 'Value is required.'),
 })
+
+// Recursive: a group's children can themselves be leaves or nested groups,
+// so the schema has to reference itself — z.lazy() is what makes that
+// possible in Zod (a plain object literal can't self-reference).
+export const conditionNodeSchema: z.ZodType<ConditionNode> = z.lazy(() =>
+  z.union([
+    leafConditionSchema,
+    z.object({
+      type: z.literal('group'),
+      operator: z.enum(['AND', 'OR']),
+      children: z.array(conditionNodeSchema).min(1, 'A group needs at least one condition.'),
+    }),
+  ]),
+)
 
 export const createRuleSchema = z.object({
   name: z.string().trim().min(3, 'Rule name must be at least 3 characters.'),
@@ -12,7 +28,7 @@ export const createRuleSchema = z.object({
   type: z.enum(['attendance', 'passing', 'grading', 'promotion', 'backlog', 'grace_marks']),
   outcome: z.string().trim().min(3, 'Describe the outcome.'),
   active: z.boolean().default(true),
-  conditions: z.array(conditionSchema).min(1, 'Add at least one condition.'),
+  conditionTree: conditionNodeSchema,
 })
 
 // Deliberately excludes regulationId: a rule's parent regulation is fixed

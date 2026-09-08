@@ -19,3 +19,9 @@ export async function history(req: Request, res: Response) {
   const data = await service.history(req.query as never, user)
   return ok(res, data)
 }
+
+export async function batch(req: Request, res: Response) {
+  const user = requireUser(req)
+  const data = await service.runBatch(req.body, user)
+  return ok(res, data)
+}

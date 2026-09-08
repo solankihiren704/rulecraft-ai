@@ -1,13 +1,63 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { AlertTriangle, MessageCircle, Send, Sparkles, X } from 'lucide-react'
 import { aiWelcomeMessages, nextId } from '@/services/mockData'
 import type { AiMessage } from '@/types'
 
-const suggestedPrompts = [
+const DEFAULT_PROMPTS = [
   'Draft a rule requiring 75% attendance to sit for exams.',
   'Explain why a student with 4 backlogs is not eligible for promotion.',
   'Summarize the Academic Performance Policy 2024 in 3 bullet points.',
 ]
+
+// Keyed by route prefix so the bubble suggests prompts relevant to what
+// you're actually looking at, instead of the same three everywhere.
+// Checked in order, first prefix match wins.
+const ROUTE_PROMPTS: { prefix: string; prompts: string[] }[] = [
+  {
+    prefix: '/students',
+    prompts: [
+      'Explain why a student with 4 backlogs is not eligible for promotion.',
+      'Draft a rule requiring a minimum GPA to remain active.',
+      'Summarize the Academic Performance Policy 2024 in 3 bullet points.',
+    ],
+  },
+  {
+    prefix: '/rule-engine',
+    prompts: [
+      'Draft a rule requiring 75% attendance to sit for exams.',
+      'Are there any conflicting rules between attendance and grace marks?',
+      'Explain why a student with 4 backlogs is not eligible for promotion.',
+    ],
+  },
+  {
+    prefix: '/simulator',
+    prompts: [
+      'Explain why a student with 4 backlogs is not eligible for promotion.',
+      'Draft a rule requiring 75% attendance to sit for exams.',
+      'Summarize the Academic Performance Policy 2024 in 3 bullet points.',
+    ],
+  },
+  {
+    prefix: '/regulations',
+    prompts: [
+      'Summarize the Academic Performance Policy 2024 in 3 bullet points.',
+      'Draft a rule requiring 75% attendance to sit for exams.',
+      'Are there any conflicting rules between attendance and grace marks?',
+    ],
+  },
+  {
+    prefix: '/reports',
+    prompts: [
+      'Summarize the Academic Performance Policy 2024 in 3 bullet points.',
+      'Explain why a student with 4 backlogs is not eligible for promotion.',
+    ],
+  },
+]
+
+function promptsForRoute(pathname: string): string[] {
+  return ROUTE_PROMPTS.find((r) => pathname.startsWith(r.prefix))?.prompts ?? DEFAULT_PROMPTS
+}
 
 function mockAiReply(prompt: string): string {
   const lower = prompt.toLowerCase()
@@ -30,12 +80,14 @@ function mockAiReply(prompt: string): string {
 // module) — this is a preview of the intended experience, not a live
 // assistant. Replies are scripted so it's never mistaken for a real connection.
 export default function AiAssistantBubble() {
+  const location = useLocation()
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<AiMessage[]>(aiWelcomeMessages)
   const [input, setInput] = useState('')
   const [isThinking, setIsThinking] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const suggestedPrompts = useMemo(() => promptsForRoute(location.pathname), [location.pathname])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })

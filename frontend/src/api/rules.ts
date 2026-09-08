@@ -1,16 +1,10 @@
 import { apiClient } from './client'
-import type { Rule, RuleOperator, RuleType } from '@/types'
+import type { ConditionNode, Rule, RuleType } from '@/types'
 
 export interface ListRulesParams {
   regulationId?: string
   type?: RuleType
   active?: boolean
-}
-
-export interface RuleConditionInput {
-  field: string
-  operator: RuleOperator
-  value: string
 }
 
 export interface CreateRuleInput {
@@ -19,7 +13,7 @@ export interface CreateRuleInput {
   type: RuleType
   outcome: string
   active: boolean
-  conditions: RuleConditionInput[]
+  conditionTree: ConditionNode
 }
 
 // A rule's parent regulation is fixed at creation — see backend

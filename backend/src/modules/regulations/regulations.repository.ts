@@ -90,7 +90,7 @@ export function publishNewVersion(id: string, version: string, changeSummary: st
 export async function duplicate(sourceId: string, newCode: string, createdById: string) {
   const source = await prisma.regulation.findUnique({
     where: { id: sourceId },
-    include: { rules: { include: { conditions: true } } },
+    include: { rules: true },
   })
   if (!source) return null
 
@@ -111,7 +111,7 @@ export async function duplicate(sourceId: string, newCode: string, createdById: 
           type: rule.type,
           outcome: rule.outcome,
           active: rule.active,
-          conditions: { create: rule.conditions.map((c) => ({ field: c.field, operator: c.operator, value: c.value })) },
+          conditionTree: rule.conditionTree as object,
         })),
       },
     },

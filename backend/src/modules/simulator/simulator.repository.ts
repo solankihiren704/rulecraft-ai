@@ -3,7 +3,7 @@ import { prisma } from '@/config/prisma'
 export function findRegulationWithActiveRules(regulationId: string) {
   return prisma.regulation.findUnique({
     where: { id: regulationId },
-    include: { rules: { where: { active: true }, include: { conditions: true } } },
+    include: { rules: { where: { active: true } } },
   })
 }
 

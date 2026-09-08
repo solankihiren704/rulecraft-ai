@@ -1,5 +1,14 @@
+import type { Prisma } from '@prisma/client'
 import { prisma } from '@/config/prisma'
 import type { CreateRuleInput, ListRulesQuery, UpdateRuleInput } from './rules.validators'
+
+// conditionNodeSchema's output is an exact-shape TS union (no index
+// signature), which Prisma's Json input type doesn't structurally accept —
+// this is a type-system-only mismatch, not a runtime one, since the value
+// really is plain JSON-serializable data validated on the way in.
+function asJsonInput(tree: CreateRuleInput['conditionTree']): Prisma.InputJsonValue {
+  return tree as unknown as Prisma.InputJsonValue
+}
 
 export function list(filters: ListRulesQuery & { visibleRegulationStatuses?: string[] }) {
   return prisma.rule.findMany({
@@ -9,13 +18,12 @@ export function list(filters: ListRulesQuery & { visibleRegulationStatuses?: str
       active: filters.active,
       regulation: filters.visibleRegulationStatuses ? { status: { in: filters.visibleRegulationStatuses as never[] } } : undefined,
     },
-    include: { conditions: true },
     orderBy: { name: 'asc' },
   })
 }
 
 export function findById(id: string) {
-  return prisma.rule.findUnique({ where: { id }, include: { conditions: true, regulation: { select: { status: true } } } })
+  return prisma.rule.findUnique({ where: { id }, include: { regulation: { select: { status: true } } } })
 }
 
 export function findRegulationStatus(regulationId: string) {
@@ -30,26 +38,21 @@ export function create(input: CreateRuleInput) {
       type: input.type,
       outcome: input.outcome,
       active: input.active,
-      conditions: { create: input.conditions },
+      conditionTree: asJsonInput(input.conditionTree),
     },
-    include: { conditions: true },
   })
 }
 
-export async function update(id: string, input: UpdateRuleInput) {
-  return prisma.$transaction(async (tx) => {
-    await tx.ruleCondition.deleteMany({ where: { ruleId: id } })
-    return tx.rule.update({
-      where: { id },
-      data: {
-        name: input.name,
-        type: input.type,
-        outcome: input.outcome,
-        active: input.active,
-        conditions: { create: input.conditions },
-      },
-      include: { conditions: true },
-    })
+export function update(id: string, input: UpdateRuleInput) {
+  return prisma.rule.update({
+    where: { id },
+    data: {
+      name: input.name,
+      type: input.type,
+      outcome: input.outcome,
+      active: input.active,
+      conditionTree: asJsonInput(input.conditionTree),
+    },
   })
 }
 
@@ -58,5 +61,5 @@ export function remove(id: string) {
 }
 
 export function toggleActive(id: string, active: boolean) {
-  return prisma.rule.update({ where: { id }, data: { active }, include: { conditions: true } })
+  return prisma.rule.update({ where: { id }, data: { active } })
 }

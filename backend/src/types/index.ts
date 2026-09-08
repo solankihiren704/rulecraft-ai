@@ -99,19 +99,27 @@ export type RuleType = 'attendance' | 'passing' | 'grading' | 'promotion' | 'bac
 
 export type RuleOperator = 'gte' | 'lte' | 'gt' | 'lt' | 'eq' | 'neq'
 
-export interface RuleCondition {
-  id: string
+export interface LeafCondition {
+  type: 'condition'
   field: string
   operator: RuleOperator
   value: string
 }
+
+export interface ConditionGroup {
+  type: 'group'
+  operator: 'AND' | 'OR'
+  children: ConditionNode[]
+}
+
+export type ConditionNode = LeafCondition | ConditionGroup
 
 export interface Rule {
   id: string
   regulationId: string
   name: string
   type: RuleType
-  conditions: RuleCondition[]
+  conditionTree: ConditionNode
   outcome: string
   active: boolean
 }

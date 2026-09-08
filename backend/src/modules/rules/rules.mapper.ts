@@ -1,9 +1,7 @@
-import type { Rule as PrismaRule, RuleCondition } from '@prisma/client'
-import type { Rule } from '@/types'
+import type { Rule as PrismaRule } from '@prisma/client'
+import type { ConditionNode, Rule } from '@/types'
 
-type RuleWithConditions = PrismaRule & { conditions: RuleCondition[] }
-
-export function toRule(row: RuleWithConditions): Rule {
+export function toRule(row: PrismaRule): Rule {
   return {
     id: row.id,
     regulationId: row.regulationId,
@@ -11,6 +9,9 @@ export function toRule(row: RuleWithConditions): Rule {
     type: row.type,
     outcome: row.outcome,
     active: row.active,
-    conditions: row.conditions.map((c) => ({ id: c.id, field: c.field, operator: c.operator, value: c.value })),
+    // Prisma types a Json column as the broad JsonValue — safe to narrow
+    // here because every write path goes through conditionNodeSchema
+    // (rules.validators.ts), so anything persisted already matches this shape.
+    conditionTree: row.conditionTree as unknown as ConditionNode,
   }
 }

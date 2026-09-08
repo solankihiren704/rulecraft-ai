@@ -59,15 +59,6 @@ enum RuleType {
   grace_marks
 }
 
-enum RuleOperator {
-  gte
-  lte
-  gt
-  lt
-  eq
-  neq
-}
-
 enum SimulationOutcome {
   eligible
   not_eligible
@@ -300,21 +291,21 @@ model Rule {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
-  conditions RuleCondition[]
+  /// Recursive AND/OR condition tree — replaces the old flat, AND-only
+  /// RuleCondition table. Shape is `ConditionNode` in
+  /// src/rule-engine/types.ts: either a single leaf condition
+  /// ({type:'condition', field, operator, value}) or a group
+  /// ({type:'group', operator:'AND'|'OR', children: ConditionNode[]}).
+  /// A plain Json column rather than a self-referential relation because
+  /// the evaluation engine already treats conditions as a pure, framework-
+  /// free data shape (see rule-engine/evaluate.ts) — Postgres has no
+  /// trouble querying/storing it, and it avoids a genuinely awkward
+  /// recursive-relation model for something that's read as a whole tree
+  /// every time anyway, never queried by individual node.
+  conditionTree Json
 
   @@index([regulationId])
   @@index([type])
-}
-
-model RuleCondition {
-  id       String       @id @default(uuid())
-  ruleId   String
-  rule     Rule         @relation(fields: [ruleId], references: [id], onDelete: Cascade)
-  field    String
-  operator RuleOperator
-  value    String
-
-  @@index([ruleId])
 }
 
 // ---------------------------------------------------------------------------

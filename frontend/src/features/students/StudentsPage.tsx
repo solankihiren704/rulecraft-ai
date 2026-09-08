@@ -71,6 +71,10 @@ export default function StudentsPage() {
   const [deletingStudent, setDeletingStudent] = useState<Student | null>(null)
   const [isExporting, setIsExporting] = useState(false)
 
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false)
+
   const [importModalOpen, setImportModalOpen] = useState(false)
   const [importDepartment, setImportDepartment] = useState('all')
   const [importProgram, setImportProgram] = useState('all')
@@ -154,6 +158,55 @@ export default function StudentsPage() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const pageIds = paged.map((s) => s.id)
+  const allPageSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.has(id))
+  const somePageSelected = pageIds.some((id) => selectedIds.has(id))
+
+  function toggleSelectPage() {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (allPageSelected) pageIds.forEach((id) => next.delete(id))
+      else pageIds.forEach((id) => next.add(id))
+      return next
+    })
+  }
+
+  function clearSelection() {
+    setSelectedIds(new Set())
+  }
+
+  function exportSelected() {
+    const selected = students.filter((s) => selectedIds.has(s.id))
+    downloadCsv(selected, programName, departmentName)
+    showToast(`Exported ${selected.length} selected student${selected.length === 1 ? '' : 's'} to CSV.`)
+  }
+
+  async function confirmBulkDelete() {
+    setIsBulkDeleting(true)
+    const ids = [...selectedIds]
+    const outcomes = await Promise.allSettled(ids.map((id) => studentsApi.remove(id)))
+    const removedIds = new Set(ids.filter((_, i) => outcomes[i].status === 'fulfilled'))
+    const failedCount = ids.length - removedIds.size
+    setStudents((prev) => prev.filter((s) => !removedIds.has(s.id)))
+    setSelectedIds(new Set())
+    setBulkDeleteOpen(false)
+    setIsBulkDeleting(false)
+    if (failedCount === 0) {
+      showToast(`Removed ${removedIds.size} student${removedIds.size === 1 ? '' : 's'}.`)
+    } else {
+      showToast(`Removed ${removedIds.size}, but failed to remove ${failedCount}.`, 'error')
+    }
+  }
+
   function resetFilters() {
     setSearchQuery('')
     setFilterYear('all')
@@ -214,6 +267,12 @@ export default function StudentsPage() {
     try {
       await studentsApi.remove(deletingStudent.id)
       setStudents((prev) => prev.filter((s) => s.id !== deletingStudent.id))
+      setSelectedIds((prev) => {
+        if (!prev.has(deletingStudent.id)) return prev
+        const next = new Set(prev)
+        next.delete(deletingStudent.id)
+        return next
+      })
       showToast(`${deletingStudent.name} removed.`)
     } catch (err) {
       showToast(err instanceof ApiRequestError ? err.message : 'Failed to remove student.', 'error')
@@ -435,6 +494,33 @@ export default function StudentsPage() {
         </div>
       </div>
 
+      {selectedIds.size > 0 && (
+        <div className="mb-4 flex items-center justify-between border border-[#e0e7ff] bg-[#eef2ff] px-4 py-2.5">
+          <p className="text-xs font-semibold text-[#4f46e5]">
+            {selectedIds.size} student{selectedIds.size === 1 ? '' : 's'} selected
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={exportSelected}
+              className="flex items-center gap-1.5 rounded border border-[#e2e8f0] bg-white px-3 py-1.5 text-xs font-semibold text-[#475569] hover:bg-[#f1f5f9]"
+            >
+              <Download size={13} /> Export selected
+            </button>
+            {canManage && (
+              <button
+                onClick={() => setBulkDeleteOpen(true)}
+                className="flex items-center gap-1.5 rounded border border-[#fee2e2] bg-white px-3 py-1.5 text-xs font-semibold text-[#dc2626] hover:bg-[#fee2e2]"
+              >
+                <Trash2 size={13} /> Delete selected
+              </button>
+            )}
+            <button onClick={clearSelection} className="px-2 text-xs font-semibold text-[#64748b] hover:text-[#475569]">
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
+
       {filtered.length === 0 ? (
         <EmptyState
           icon={Search}
@@ -449,6 +535,18 @@ export default function StudentsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-[#e2e8f0] bg-[#f1f5f9]">
+                    <th className="w-10 px-5 py-3">
+                      <input
+                        type="checkbox"
+                        checked={allPageSelected}
+                        ref={(el) => {
+                          if (el) el.indeterminate = !allPageSelected && somePageSelected
+                        }}
+                        onChange={toggleSelectPage}
+                        aria-label="Select all students on this page"
+                        className="h-4 w-4 accent-[#4f46e5]"
+                      />
+                    </th>
                     <th className="px-5 py-3 text-left font-semibold text-[#475569]">Student</th>
                     <th className="px-5 py-3 text-left font-semibold text-[#475569]">ID</th>
                     <th className="px-5 py-3 text-left font-semibold text-[#475569]">Department</th>
@@ -461,7 +559,19 @@ export default function StudentsPage() {
                 </thead>
                 <tbody>
                   {paged.map((student) => (
-                    <tr key={student.id} className="border-b border-[#e2e8f0] last:border-b-0 hover:bg-[#f8fafc]">
+                    <tr
+                      key={student.id}
+                      className={`border-b border-[#e2e8f0] last:border-b-0 hover:bg-[#f8fafc] ${selectedIds.has(student.id) ? 'bg-[#eef2ff]' : ''}`}
+                    >
+                      <td className="px-5 py-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(student.id)}
+                          onChange={() => toggleSelect(student.id)}
+                          aria-label={`Select ${student.name}`}
+                          className="h-4 w-4 accent-[#4f46e5]"
+                        />
+                      </td>
                       <td className="px-5 py-4">
                         <p className="font-semibold text-[#0f172a]">{student.name}</p>
                         <p className="text-xs text-[#94a3b8]">{student.email}</p>
@@ -798,6 +908,15 @@ export default function StudentsPage() {
         confirmLabel="Remove student"
         onConfirm={confirmDelete}
         onCancel={() => setDeletingStudent(null)}
+      />
+
+      <ConfirmDialog
+        open={bulkDeleteOpen}
+        title="Remove selected students"
+        description={`This will permanently remove ${selectedIds.size} student${selectedIds.size === 1 ? '' : 's'} from the roster. This cannot be undone.`}
+        confirmLabel={isBulkDeleting ? 'Removing...' : 'Remove students'}
+        onConfirm={confirmBulkDelete}
+        onCancel={() => setBulkDeleteOpen(false)}
       />
     </div>
   )

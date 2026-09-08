@@ -1,5 +1,5 @@
 import type { RuleOperator } from '@/types'
-import type { EngineCondition, EngineRule, EvaluationResult, Facts, RuleEvaluation } from './types'
+import type { ConditionNode, EngineRule, EvaluationResult, Facts, RuleEvaluation } from './types'
 
 /**
  * evaluate.ts
@@ -43,19 +43,31 @@ export function evaluateCondition(operator: RuleOperator, actual: string, expect
   }
 }
 
-function formatCondition(condition: EngineCondition): string {
-  return `${condition.field} ${condition.operator} ${condition.value}`
+/** Evaluates a condition tree (leaf or nested AND/OR group) against facts. */
+export function evaluateNode(node: ConditionNode, facts: Facts): boolean {
+  if (node.type === 'condition') {
+    return evaluateCondition(node.operator, facts[node.field] ?? '', node.value)
+  }
+  const childResults = node.children.map((child) => evaluateNode(child, facts))
+  return node.operator === 'AND' ? childResults.every(Boolean) : childResults.some(Boolean)
+}
+
+/** Renders a condition tree back to readable text, e.g. "(a >= 1 AND b <= 2) OR c = true". */
+export function describeNode(node: ConditionNode, depth = 0): string {
+  if (node.type === 'condition') {
+    return `${node.field} ${node.operator} ${node.value}`
+  }
+  const inner = node.children.map((child) => describeNode(child, depth + 1)).join(` ${node.operator} `)
+  return depth > 0 && node.children.length > 1 ? `(${inner})` : inner
 }
 
 export function evaluateRule(rule: EngineRule, facts: Facts): RuleEvaluation {
-  const passed = rule.conditions.every((condition) =>
-    evaluateCondition(condition.operator, facts[condition.field] ?? '', condition.value),
-  )
+  const passed = evaluateNode(rule.conditionTree, facts)
 
   return {
     rule: rule.name,
     passed,
-    detail: passed ? rule.outcome : `Did not satisfy: ${rule.conditions.map(formatCondition).join(', ')}`,
+    detail: passed ? rule.outcome : `Did not satisfy: ${describeNode(rule.conditionTree)}`,
   }
 }
 

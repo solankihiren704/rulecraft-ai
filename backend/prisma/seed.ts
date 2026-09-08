@@ -104,7 +104,7 @@ async function main() {
       type: 'attendance',
       outcome: 'Eligible to sit for semester exams',
       active: true,
-      conditions: { create: [{ field: 'attendancePercent', operator: 'gte', value: '75' }] },
+      conditionTree: { type: 'condition', field: 'attendancePercent', operator: 'gte', value: '75' },
     },
   })
   await prisma.rule.create({
@@ -114,7 +114,7 @@ async function main() {
       type: 'passing',
       outcome: 'Subject marked as passed',
       active: true,
-      conditions: { create: [{ field: 'subjectMarks', operator: 'gte', value: '40' }] },
+      conditionTree: { type: 'condition', field: 'subjectMarks', operator: 'gte', value: '40' },
     },
   })
   await prisma.rule.create({
@@ -124,7 +124,7 @@ async function main() {
       type: 'grace_marks',
       outcome: 'Up to 8 grace marks applied per subject',
       active: true,
-      conditions: { create: [{ field: 'shortfallMarks', operator: 'lte', value: '8' }] },
+      conditionTree: { type: 'condition', field: 'shortfallMarks', operator: 'lte', value: '8' },
     },
   })
 
@@ -154,10 +154,22 @@ async function main() {
             type: 'attendance',
             outcome: 'Condoned to eligible with HOD approval',
             active: false,
-            conditions: {
-              create: [
-                { field: 'attendancePercent', operator: 'gte', value: '65' },
-                { field: 'medicalCertificate', operator: 'eq', value: 'true' },
+            // A nested AND/OR tree, doubling as a demo of that capability:
+            // condoned either on medical grounds with borderline attendance,
+            // or on attendance alone once it clears a higher bar.
+            conditionTree: {
+              type: 'group',
+              operator: 'OR',
+              children: [
+                {
+                  type: 'group',
+                  operator: 'AND',
+                  children: [
+                    { type: 'condition', field: 'attendancePercent', operator: 'gte', value: '65' },
+                    { type: 'condition', field: 'medicalCertificate', operator: 'eq', value: 'true' },
+                  ],
+                },
+                { type: 'condition', field: 'attendancePercent', operator: 'gte', value: '70' },
               ],
             },
           },
@@ -194,7 +206,7 @@ async function main() {
       type: 'backlog',
       outcome: 'Promoted to next year with active backlog',
       active: true,
-      conditions: { create: [{ field: 'activeBacklogs', operator: 'lte', value: '4' }] },
+      conditionTree: { type: 'condition', field: 'activeBacklogs', operator: 'lte', value: '4' },
     },
   })
   const cgpaRule = await prisma.rule.create({
@@ -204,7 +216,7 @@ async function main() {
       type: 'promotion',
       outcome: 'Eligible for promotion to next academic year',
       active: true,
-      conditions: { create: [{ field: 'cgpa', operator: 'gte', value: '5.0' }] },
+      conditionTree: { type: 'condition', field: 'cgpa', operator: 'gte', value: '5.0' },
     },
   })
 

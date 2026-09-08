@@ -9,6 +9,7 @@ import * as simulatorApi from '@/api/simulator'
 import * as regulationsApi from '@/api/regulations'
 import * as rulesApi from '@/api/rules'
 import { ApiRequestError } from '@/api/client'
+import { collectConditionFields } from '@/utils/conditionTree'
 import type { RegulationWithRuleCount } from '@/api/regulations'
 import type { Rule, SimulationResult } from '@/types'
 
@@ -56,7 +57,7 @@ export default function SimulatorPage() {
   const applicableRules = useMemo(() => rules.filter((r) => r.regulationId === regulationId && r.active), [rules, regulationId])
   const uniqueFields = useMemo(() => {
     const fieldSet = new Set<string>()
-    applicableRules.forEach((r) => r.conditions.forEach((c) => fieldSet.add(c.field)))
+    applicableRules.forEach((r) => collectConditionFields(r.conditionTree, fieldSet))
     return Array.from(fieldSet)
   }, [applicableRules])
 

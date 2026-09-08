@@ -5,15 +5,28 @@ import type { RuleOperator } from '@/types'
 // (see backend architecture doc, §02). Any caller (Simulator today, real
 // eligibility evaluation later) adapts its own data into these shapes.
 
-export interface EngineCondition {
+export interface LeafCondition {
+  type: 'condition'
   field: string
   operator: RuleOperator
   value: string
 }
 
+export interface ConditionGroup {
+  type: 'group'
+  operator: 'AND' | 'OR'
+  children: ConditionNode[]
+}
+
+/// A rule's condition tree: either one leaf condition (no group wrapper
+/// needed for the common single-condition case) or a group of children
+/// combined with AND/OR, where each child can itself be a leaf or another
+/// nested group — arbitrary nesting, e.g. (A AND B) OR (C AND (D OR E)).
+export type ConditionNode = LeafCondition | ConditionGroup
+
 export interface EngineRule {
   name: string
-  conditions: EngineCondition[]
+  conditionTree: ConditionNode
   outcome: string
 }
 

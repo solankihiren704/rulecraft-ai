@@ -22,6 +22,7 @@ import * as regulationsApi from '@/api/regulations'
 import * as rulesApi from '@/api/rules'
 import * as programsApi from '@/api/programs'
 import { ApiRequestError } from '@/api/client'
+import { describeConditionTree } from '@/utils/conditionTree'
 import type { RegulationWithRuleCount } from '@/api/regulations'
 import type { Program, Rule } from '@/types'
 
@@ -254,7 +255,7 @@ export default function RegulationDetailPage() {
                 </div>
                 <p className="mt-1 text-xs uppercase tracking-wide text-[#94a3b8]">{rule.type.replace('_', ' ')}</p>
                 <p className="mt-2 text-xs text-[#64748b]">
-                  {rule.conditions.map((c) => `${c.field} ${c.operator} ${c.value}`).join(' AND ')} → {rule.outcome}
+                  {describeConditionTree(rule.conditionTree)} → {rule.outcome}
                 </p>
               </div>
             ))

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Controller, useFieldArray, useForm } from 'react-hook-form'
+import type { Control, UseFormRegister } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { AlertCircle, ArrowRight, GitBranch, Plus, Search, Edit2, Trash2, X, Loader2 } from 'lucide-react'
@@ -13,8 +14,9 @@ import ToggleSwitch from '@/components/ui/ToggleSwitch'
 import * as rulesApi from '@/api/rules'
 import * as regulationsApi from '@/api/regulations'
 import { ApiRequestError } from '@/api/client'
+import { operatorSymbols } from '@/utils/conditionTree'
 import type { RegulationWithRuleCount } from '@/api/regulations'
-import type { Rule, RuleType } from '@/types'
+import type { ConditionGroup, ConditionNode, Rule, RuleType } from '@/types'
 
 const ruleTypes: { id: RuleType; label: string }[] = [
   { id: 'attendance', label: 'Attendance' },
@@ -34,20 +36,25 @@ const operators = [
   { id: 'neq', label: '!= (not equal)' },
 ]
 
-const operatorSymbols: Record<string, string> = {
-  gte: '≥',
-  lte: '≤',
-  gt: '>',
-  lt: '<',
-  eq: '=',
-  neq: '≠',
-}
-
-const conditionSchema = z.object({
+const leafConditionSchema = z.object({
+  type: z.literal('condition'),
   field: z.string().min(1, 'Field is required.'),
   operator: z.enum(['gte', 'lte', 'gt', 'lt', 'eq', 'neq']),
   value: z.string().min(1, 'Value is required.'),
 })
+
+// Recursive: a group's children can themselves be leaves or nested groups.
+// z.lazy() is what makes a schema able to reference itself.
+const conditionNodeSchema: z.ZodType<ConditionNode> = z.lazy(() =>
+  z.union([
+    leafConditionSchema,
+    z.object({
+      type: z.literal('group'),
+      operator: z.enum(['AND', 'OR']),
+      children: z.array(conditionNodeSchema).min(1, 'A group needs at least one condition.'),
+    }),
+  ]),
+)
 
 const schema = z.object({
   name: z.string().min(3, 'Rule name must be at least 3 characters.'),
@@ -55,11 +62,131 @@ const schema = z.object({
   type: z.enum(['attendance', 'passing', 'grading', 'promotion', 'backlog', 'grace_marks']),
   outcome: z.string().min(3, 'Describe the outcome.'),
   active: z.boolean(),
-  conditions: z.array(conditionSchema).min(1, 'Add at least one condition.'),
+  conditionTree: conditionNodeSchema,
 })
 
 type FormValues = z.infer<typeof schema>
 const topLevelFields: (keyof FormValues)[] = ['name', 'regulationId', 'type', 'outcome', 'active']
+
+// The builder's root is always rendered as a group (even a single plain
+// condition becomes a one-child AND group) — much simpler editor than
+// letting the root itself be a bare leaf, and evaluates identically either
+// way since a one-child AND group and its lone child mean the same thing.
+function normalizeToGroup(node: ConditionNode): ConditionGroup {
+  return node.type === 'group' ? node : { type: 'group', operator: 'AND', children: [node] }
+}
+
+const emptyCondition = { type: 'condition' as const, field: '', operator: 'gte' as const, value: '' }
+
+interface ConditionGroupEditorProps {
+  control: Control<FormValues>
+  register: UseFormRegister<FormValues>
+  path: string
+  depth: number
+}
+
+// Recursive condition-tree builder. RHF's Path<FormValues> type can't
+// express an arbitrarily-deep dynamic path, so this component (only this
+// component) works with loosely-typed paths and casts at the register/
+// useFieldArray boundary — everywhere else in the form stays fully typed.
+function ConditionGroupEditor({ control, register, path, depth }: ConditionGroupEditorProps) {
+  const { fields, append, remove } = useFieldArray({ control, name: `${path}.children` as 'conditionTree.children' })
+
+  return (
+    <div className={depth > 0 ? 'ml-2 border-l-2 border-[#e2e8f0] pl-4' : ''}>
+      <div className="mb-2 flex items-center gap-2">
+        <select
+          {...register(`${path}.operator` as 'conditionTree.operator')}
+          className="rounded border border-[#e0e7ff] bg-[#eef2ff] px-2 py-1 text-xs font-bold text-[#4f46e5] outline-none"
+        >
+          <option value="AND">AND</option>
+          <option value="OR">OR</option>
+        </select>
+        <span className="text-[10px] text-[#94a3b8]">of the following must match</span>
+      </div>
+      <div className="space-y-2">
+        {fields.map((field, index) => {
+          const childPath = `${path}.children.${index}`
+          const isGroup = (field as unknown as ConditionNode).type === 'group'
+          return (
+            <div key={field.id} className="flex items-start gap-2">
+              {isGroup ? (
+                <div className="flex-1 rounded border border-dashed border-[#cbd5e1] bg-[#f8fafc] p-3">
+                  <ConditionGroupEditor control={control} register={register} path={childPath} depth={depth + 1} />
+                </div>
+              ) : (
+                <>
+                  <input
+                    placeholder="field, e.g. attendancePercent"
+                    className={`${inputClassName} flex-[1.3]`}
+                    {...register(`${childPath}.field` as 'conditionTree.children.0.field')}
+                  />
+                  <select className={`${inputClassName} flex-1`} {...register(`${childPath}.operator` as 'conditionTree.children.0.operator')}>
+                    {operators.map((op) => (
+                      <option key={op.id} value={op.id}>
+                        {op.label}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    placeholder="value"
+                    className={`${inputClassName} flex-1`}
+                    {...register(`${childPath}.value` as 'conditionTree.children.0.value')}
+                  />
+                </>
+              )}
+              <button
+                type="button"
+                onClick={() => fields.length > 1 && remove(index)}
+                disabled={fields.length === 1}
+                className="mt-2.5 shrink-0 text-[#94a3b8] hover:text-[#dc2626] disabled:opacity-30"
+                aria-label="Remove"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          )
+        })}
+      </div>
+      <div className="mt-2 flex gap-3">
+        <button type="button" onClick={() => append(emptyCondition)} className="flex items-center gap-1 text-xs font-semibold text-[#4f46e5]">
+          <Plus size={13} /> Condition
+        </button>
+        <button
+          type="button"
+          onClick={() => append({ type: 'group', operator: 'AND', children: [emptyCondition] })}
+          className="flex items-center gap-1 text-xs font-semibold text-[#475569]"
+        >
+          <Plus size={13} /> Group
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function ConditionTreeBadges({ node, depth = 0 }: { node: ConditionNode; depth?: number }) {
+  if (node.type === 'condition') {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-md border border-[#e2e8f0] bg-[#f8fafc] px-2 py-1 font-mono text-[11px]">
+        <span className="text-[#334155]">{node.field}</span>
+        <span className="font-bold text-[#4f46e5]">{operatorSymbols[node.operator] ?? node.operator}</span>
+        <span className="font-semibold text-[#0f172a]">{node.value}</span>
+      </span>
+    )
+  }
+  return (
+    <span className={`inline-flex flex-wrap items-center gap-1.5 ${depth > 0 ? 'rounded-md border border-dashed border-[#cbd5e1] px-2 py-1' : ''}`}>
+      {node.children.map((child, i) => (
+        <span key={i} className="inline-flex flex-wrap items-center gap-1.5">
+          {i > 0 && (
+            <span className="rounded bg-[#e0e7ff] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#4f46e5]">{node.operator}</span>
+          )}
+          <ConditionTreeBadges node={child} depth={depth + 1} />
+        </span>
+      ))}
+    </span>
+  )
+}
 
 export default function RuleEnginePage() {
   const { showToast } = useToast()
@@ -86,7 +213,6 @@ export default function RuleEnginePage() {
     setError,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({ resolver: zodResolver(schema) })
-  const { fields, append, remove } = useFieldArray({ control, name: 'conditions' })
 
   async function loadData() {
     setLoading(true)
@@ -128,7 +254,7 @@ export default function RuleEnginePage() {
       type: 'attendance',
       outcome: '',
       active: true,
-      conditions: [{ field: 'attendancePercent', operator: 'gte', value: '75' }],
+      conditionTree: { type: 'group', operator: 'AND', children: [{ type: 'condition', field: 'attendancePercent', operator: 'gte', value: '75' }] },
     })
     setModalOpen(true)
   }
@@ -141,7 +267,7 @@ export default function RuleEnginePage() {
       type: rule.type,
       outcome: rule.outcome,
       active: rule.active,
-      conditions: rule.conditions.map(({ field, operator, value }) => ({ field, operator, value })),
+      conditionTree: normalizeToGroup(rule.conditionTree),
     })
     setModalOpen(true)
   }
@@ -283,16 +409,7 @@ export default function RuleEnginePage() {
                   </div>
                   <p className="text-xs text-[#94a3b8]">{regulationName(rule.regulationId)}</p>
                   <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-                    {rule.conditions.map((c, i) => (
-                      <span key={c.id ?? i} className="flex items-center gap-1.5">
-                        {i > 0 && <span className="text-[9px] font-bold uppercase tracking-wide text-[#94a3b8]">and</span>}
-                        <span className="inline-flex items-center gap-1 rounded-md border border-[#e2e8f0] bg-[#f8fafc] px-2 py-1 font-mono text-[11px]">
-                          <span className="text-[#334155]">{c.field}</span>
-                          <span className="font-bold text-[#4f46e5]">{operatorSymbols[c.operator] ?? c.operator}</span>
-                          <span className="font-semibold text-[#0f172a]">{c.value}</span>
-                        </span>
-                      </span>
-                    ))}
+                    <ConditionTreeBadges node={rule.conditionTree} />
                     <ArrowRight size={12} className="mx-0.5 shrink-0 text-[#94a3b8]" />
                     <span className="inline-flex items-center rounded-md bg-[#0f172a] px-2 py-1 text-[11px] font-semibold text-white">
                       {rule.outcome}
@@ -350,44 +467,10 @@ export default function RuleEnginePage() {
             </FormField>
           </div>
 
-          <div className="mb-2 flex items-center justify-between">
-            <p className="text-xs font-semibold text-[#475569]">Conditions (all must match)</p>
-            <button
-              type="button"
-              onClick={() => append({ field: '', operator: 'gte', value: '' })}
-              className="flex items-center gap-1 text-xs font-semibold text-[#4f46e5]"
-            >
-              <Plus size={13} /> Add condition
-            </button>
-          </div>
-          {errors.conditions?.root?.message && <p className="mb-2 text-[11px] font-semibold text-[#dc2626]">{errors.conditions.root.message}</p>}
-          <div className="mb-4 space-y-2">
-            {fields.map((field, index) => (
-              <div key={field.id} className="flex items-start gap-2">
-                <input
-                  placeholder="field, e.g. attendancePercent"
-                  className={`${inputClassName} flex-[1.3]`}
-                  {...register(`conditions.${index}.field` as const)}
-                />
-                <select className={`${inputClassName} flex-1`} {...register(`conditions.${index}.operator` as const)}>
-                  {operators.map((op) => (
-                    <option key={op.id} value={op.id}>
-                      {op.label}
-                    </option>
-                  ))}
-                </select>
-                <input placeholder="value" className={`${inputClassName} flex-1`} {...register(`conditions.${index}.value` as const)} />
-                <button
-                  type="button"
-                  onClick={() => fields.length > 1 && remove(index)}
-                  disabled={fields.length === 1}
-                  className="mt-2.5 shrink-0 text-[#94a3b8] hover:text-[#dc2626] disabled:opacity-30"
-                  aria-label="Remove condition"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-            ))}
+          <p className="mb-2 text-xs font-semibold text-[#475569]">Conditions</p>
+          {errors.conditionTree && <p className="mb-2 text-[11px] font-semibold text-[#dc2626]">Fix the highlighted conditions below.</p>}
+          <div className="mb-4 rounded border border-[#e2e8f0] bg-white p-3">
+            <ConditionGroupEditor control={control} register={register} path="conditionTree" depth={0} />
           </div>
 
           <FormField label="Outcome" htmlFor="rule-outcome" error={errors.outcome?.message} hint="What happens when all conditions above are satisfied." required>
