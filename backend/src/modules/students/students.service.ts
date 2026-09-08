@@ -1,12 +1,13 @@
 import { ApiError } from '@/middleware/errorHandler'
 import { assertInScope } from '@/middleware/authorize'
 import * as programsRepo from '@/modules/programs/programs.repository'
+import { renderCsv, renderPdf, type ReportPayload } from '@/modules/reports/reports.render'
 import type { Role } from '@/types'
 import * as repo from './students.repository'
 import { toStudent } from './students.mapper'
 import { buildImportTemplate, type ProgramReference, type RawImportRow } from './students.import'
 import { importStudentRowSchema } from './students.validators'
-import type { CreateStudentInput, ImportTemplateQuery, ListStudentsQuery, UpdateStudentInput } from './students.validators'
+import type { CreateStudentInput, ExportStudentsInput, ImportTemplateQuery, ListStudentsQuery, UpdateStudentInput } from './students.validators'
 
 interface CurrentUser {
   id: string
@@ -209,4 +210,61 @@ export async function buildTemplate(filters: ImportTemplateQuery): Promise<Buffe
   const scoped = filters.programId ? all.filter((p) => p.id === filters.programId) : all
   const references: ProgramReference[] = scoped.map((p) => ({ code: p.code, name: p.name, departmentName: p.department.name }))
   return buildImportTemplate(references)
+}
+
+// --- Bulk export ---------------------------------------------------------
+
+interface ExportUser extends CurrentUser {
+  name: string
+}
+
+const FORMAT_CONTENT_TYPE = { csv: 'text/csv', pdf: 'application/pdf' } as const
+
+export async function exportSelected(input: ExportStudentsInput, user: ExportUser) {
+  const rows = await repo.findManyByIds(input.studentIds)
+
+  // Row-level visibility mirrors getById — silently drop rows the caller
+  // can't see (a stale selection, e.g. from before a filter changed)
+  // rather than erroring the whole export over one out-of-scope row.
+  const visible = rows.filter((row) => {
+    try {
+      assertVisible(user, row)
+      return true
+    } catch {
+      return false
+    }
+  })
+
+  const payload: ReportPayload = {
+    title: 'Student Export',
+    subtitle: `${visible.length} student${visible.length === 1 ? '' : 's'}`,
+    generatedAt: new Date(),
+    generatedBy: user.name,
+    notes:
+      rows.length !== visible.length
+        ? [`${rows.length - visible.length} of the selected student(s) were excluded — outside your visibility.`]
+        : [],
+    summary: [{ label: 'Students exported', value: visible.length }],
+    tableTitle: 'Students',
+    tableColumns: ['Name', 'Email', 'Student ID', 'Department', 'Program', 'Year', 'Status', 'GPA'],
+    tableRows: visible.map((s) => [
+      s.name,
+      s.email,
+      s.studentId,
+      s.program.department.name,
+      s.program.name,
+      s.year,
+      s.status,
+      s.gpa.toFixed(2),
+    ]),
+  }
+
+  const buffer = input.format === 'csv' ? renderCsv(payload) : await renderPdf(payload)
+  const datestamp = new Date().toISOString().slice(0, 10)
+
+  return {
+    buffer,
+    filename: `students-export-${datestamp}.${input.format}`,
+    contentType: FORMAT_CONTENT_TYPE[input.format],
+  }
 }

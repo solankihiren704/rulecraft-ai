@@ -74,6 +74,7 @@ export default function StudentsPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
   const [isBulkDeleting, setIsBulkDeleting] = useState(false)
+  const [isExportingSelected, setIsExportingSelected] = useState<studentsApi.ExportFormat | null>(null)
 
   const [importModalOpen, setImportModalOpen] = useState(false)
   const [importDepartment, setImportDepartment] = useState('all')
@@ -184,10 +185,17 @@ export default function StudentsPage() {
     setSelectedIds(new Set())
   }
 
-  function exportSelected() {
-    const selected = students.filter((s) => selectedIds.has(s.id))
-    downloadCsv(selected, programName, departmentName)
-    showToast(`Exported ${selected.length} selected student${selected.length === 1 ? '' : 's'} to CSV.`)
+  async function exportSelected(format: studentsApi.ExportFormat) {
+    setIsExportingSelected(format)
+    try {
+      const { blob, filename } = await studentsApi.exportSelected([...selectedIds], format)
+      triggerBlobDownload(blob, filename)
+      showToast(`Exported ${selectedIds.size} selected student${selectedIds.size === 1 ? '' : 's'} to ${format.toUpperCase()}.`)
+    } catch (err) {
+      showToast(err instanceof ApiRequestError ? err.message : `Failed to export as ${format.toUpperCase()}.`, 'error')
+    } finally {
+      setIsExportingSelected(null)
+    }
   }
 
   async function confirmBulkDelete() {
@@ -501,10 +509,18 @@ export default function StudentsPage() {
           </p>
           <div className="flex items-center gap-2">
             <button
-              onClick={exportSelected}
-              className="flex items-center gap-1.5 rounded border border-[#e2e8f0] bg-white px-3 py-1.5 text-xs font-semibold text-[#475569] hover:bg-[#f1f5f9]"
+              onClick={() => exportSelected('csv')}
+              disabled={isExportingSelected !== null}
+              className="flex items-center gap-1.5 rounded border border-[#e2e8f0] bg-white px-3 py-1.5 text-xs font-semibold text-[#475569] hover:bg-[#f1f5f9] disabled:opacity-60"
             >
-              <Download size={13} /> Export selected
+              {isExportingSelected === 'csv' ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />} Export CSV
+            </button>
+            <button
+              onClick={() => exportSelected('pdf')}
+              disabled={isExportingSelected !== null}
+              className="flex items-center gap-1.5 rounded border border-[#e2e8f0] bg-white px-3 py-1.5 text-xs font-semibold text-[#475569] hover:bg-[#f1f5f9] disabled:opacity-60"
+            >
+              {isExportingSelected === 'pdf' ? <Loader2 size={13} className="animate-spin" /> : <FileSpreadsheet size={13} />} Export PDF
             </button>
             {canManage && (
               <button

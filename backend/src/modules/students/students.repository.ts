@@ -41,6 +41,16 @@ export function findById(id: string) {
   return prisma.student.findUnique({ where: { id }, include: detailInclude })
 }
 
+// Richer than detailInclude — needs the program AND department *names* for
+// the export table, not just departmentId for the visibility check.
+export function findManyByIds(ids: string[]) {
+  return prisma.student.findMany({
+    where: { id: { in: ids } },
+    include: { program: { include: { department: { select: { name: true } } } } },
+    orderBy: { name: 'asc' },
+  })
+}
+
 export function findByEmail(email: string) {
   return prisma.student.findUnique({ where: { email: email.toLowerCase() } })
 }

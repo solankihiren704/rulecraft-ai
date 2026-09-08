@@ -3,9 +3,11 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { ToastProvider } from '@/contexts/ToastContext'
+import { AiAssistantProvider } from '@/contexts/AiAssistantContext'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import MainLayout from '@/layouts/MainLayout'
 import LoginPage from '@/features/auth/LoginPage'
+import { aiWelcomeMessages } from '@/services/mockData'
 
 const DashboardPage = lazy(() => import('@/features/dashboard/DashboardPage'))
 const StudentsPage = lazy(() => import('@/features/students/StudentsPage'))
@@ -35,27 +37,29 @@ function App() {
   return (
     <AuthProvider>
       <ToastProvider>
-        <BrowserRouter>
-          <Suspense fallback={<RouteLoading />}>
-            <Routes>
-              <Route path="/login" element={<LoginPage />} />
-              <Route element={<ProtectedRoute />}>
-                <Route element={<MainLayout />}>
-                  <Route path="/" element={<DashboardPage />} />
-                  <Route path="/students" element={<StudentsPage />} />
-                  <Route path="/academic-structure" element={<AcademicStructurePage />} />
-                  <Route path="/regulations" element={<RegulationsPage />} />
-                  <Route path="/regulations/:regulationId" element={<RegulationDetailPage />} />
-                  <Route path="/rule-engine" element={<RuleEnginePage />} />
-                  <Route path="/simulator" element={<SimulatorPage />} />
-                  <Route path="/users" element={<UsersPage />} />
-                  <Route path="/reports" element={<ReportsPage />} />
-                  <Route path="*" element={<Navigate to="/" replace />} />
+        <AiAssistantProvider initialMessages={aiWelcomeMessages}>
+          <BrowserRouter>
+            <Suspense fallback={<RouteLoading />}>
+              <Routes>
+                <Route path="/login" element={<LoginPage />} />
+                <Route element={<ProtectedRoute />}>
+                  <Route element={<MainLayout />}>
+                    <Route path="/" element={<DashboardPage />} />
+                    <Route path="/students" element={<StudentsPage />} />
+                    <Route path="/academic-structure" element={<AcademicStructurePage />} />
+                    <Route path="/regulations" element={<RegulationsPage />} />
+                    <Route path="/regulations/:regulationId" element={<RegulationDetailPage />} />
+                    <Route path="/rule-engine" element={<RuleEnginePage />} />
+                    <Route path="/simulator" element={<SimulatorPage />} />
+                    <Route path="/users" element={<UsersPage />} />
+                    <Route path="/reports" element={<ReportsPage />} />
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Route>
                 </Route>
-              </Route>
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
+              </Routes>
+            </Suspense>
+          </BrowserRouter>
+        </AiAssistantProvider>
       </ToastProvider>
     </AuthProvider>
   )

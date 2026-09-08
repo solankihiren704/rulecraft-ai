@@ -77,3 +77,12 @@ export async function importStudents(file: File): Promise<ImportSummary> {
   })
   return res.data.data
 }
+
+export type ExportFormat = 'csv' | 'pdf'
+
+export async function exportSelected(studentIds: string[], format: ExportFormat): Promise<{ blob: Blob; filename: string }> {
+  const res = await apiClient.post<Blob>('/students/export', { studentIds, format }, { responseType: 'blob' })
+  const disposition = res.headers['content-disposition'] as string | undefined
+  const match = disposition?.match(/filename="([^"]+)"/)
+  return { blob: res.data, filename: match?.[1] ?? `students-export.${format}` }
+}

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { AlertTriangle, MessageCircle, Send, Sparkles, X } from 'lucide-react'
-import { aiWelcomeMessages, nextId } from '@/services/mockData'
-import type { AiMessage } from '@/types'
+import { nextId } from '@/services/mockData'
+import { useAiAssistant } from '@/contexts/AiAssistantContext'
 
 const DEFAULT_PROMPTS = [
   'Draft a rule requiring 75% attendance to sit for exams.',
@@ -81,8 +81,7 @@ function mockAiReply(prompt: string): string {
 // assistant. Replies are scripted so it's never mistaken for a real connection.
 export default function AiAssistantBubble() {
   const location = useLocation()
-  const [open, setOpen] = useState(false)
-  const [messages, setMessages] = useState<AiMessage[]>(aiWelcomeMessages)
+  const { open, setOpen, messages, addMessage } = useAiAssistant()
   const [input, setInput] = useState('')
   const [isThinking, setIsThinking] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -108,11 +107,11 @@ export default function AiAssistantBubble() {
   function send(prompt?: string) {
     const text = (prompt ?? input).trim()
     if (!text || isThinking) return
-    setMessages((prev) => [...prev, { id: nextId('ai'), role: 'user', content: text, at: new Date().toISOString() }])
+    addMessage({ id: nextId('ai'), role: 'user', content: text, at: new Date().toISOString() })
     setInput('')
     setIsThinking(true)
     window.setTimeout(() => {
-      setMessages((prev) => [...prev, { id: nextId('ai'), role: 'assistant', content: mockAiReply(text), at: new Date().toISOString() }])
+      addMessage({ id: nextId('ai'), role: 'assistant', content: mockAiReply(text), at: new Date().toISOString() })
       setIsThinking(false)
     }, 900)
   }
@@ -214,7 +213,7 @@ export default function AiAssistantBubble() {
       )}
 
       <button
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => setOpen(!open)}
         aria-label={open ? 'Close AI assistant' : 'Open AI assistant'}
         aria-expanded={open}
         className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-[#4f46e5] text-white shadow-lg transition hover:scale-105 hover:bg-[#4338ca] active:scale-95"

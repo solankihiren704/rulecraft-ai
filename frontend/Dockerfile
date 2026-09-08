@@ -2,7 +2,10 @@
 FROM node:22-alpine
 WORKDIR /app
 COPY package*.json ./
-RUN npm install
+# npm ci, not npm install — deterministic, matches CI, and avoids a real
+# npm CLI bug (arborist "Cannot read properties of null (reading
+# 'edgesOut')") that npm install hit in the backend's equivalent build step.
+RUN npm ci
 COPY . .
 # Vite bakes import.meta.env.VITE_* values into the bundle at BUILD time —
 # a container-runtime `environment:` entry in docker-compose.yml has no

@@ -6,7 +6,13 @@ import { authorize } from '@/middleware/authorize'
 import { validate } from '@/middleware/validate'
 import { idParamSchema } from '@/validators/common'
 import * as controller from './students.controller'
-import { createStudentSchema, importTemplateQuerySchema, listStudentsQuerySchema, updateStudentSchema } from './students.validators'
+import {
+  createStudentSchema,
+  exportStudentsSchema,
+  importTemplateQuerySchema,
+  listStudentsQuerySchema,
+  updateStudentSchema,
+} from './students.validators'
 
 export const studentsRouter = Router()
 studentsRouter.use(authenticate)
@@ -32,6 +38,10 @@ const upload = multer({
 // the :id param route.
 studentsRouter.get('/import/template', manage, validate({ query: importTemplateQuerySchema }), controller.importTemplate)
 studentsRouter.post('/import', manage, upload.single('file'), controller.importStudents)
+
+// Read-only, so open to any authenticated role — same visibility rules as
+// GET / apply row-by-row (students.service.exportSelected).
+studentsRouter.post('/export', validate({ body: exportStudentsSchema }), controller.exportSelected)
 
 studentsRouter.get('/', validate({ query: listStudentsQuerySchema }), controller.list)
 studentsRouter.get('/:id', validate({ params: idParamSchema }), controller.getById)

@@ -34,8 +34,21 @@ export const importTemplateQuerySchema = z.object({
   programId: z.string().uuid().optional(),
 })
 
+// Bounded well above any real bulk-selection size — export renders every
+// row into a PDF/CSV buffer in memory, so this keeps that bounded too.
+export const MAX_EXPORT_STUDENTS = 500
+
+export const exportStudentsSchema = z.object({
+  studentIds: z
+    .array(z.string().uuid())
+    .min(1, 'Select at least one student.')
+    .max(MAX_EXPORT_STUDENTS, `A single export is limited to ${MAX_EXPORT_STUDENTS} students.`),
+  format: z.enum(['csv', 'pdf']),
+})
+
 export type CreateStudentInput = z.infer<typeof createStudentSchema>
 export type UpdateStudentInput = z.infer<typeof updateStudentSchema>
 export type ListStudentsQuery = z.infer<typeof listStudentsQuerySchema>
 export type ImportStudentRow = z.infer<typeof importStudentRowSchema>
 export type ImportTemplateQuery = z.infer<typeof importTemplateQuerySchema>
+export type ExportStudentsInput = z.infer<typeof exportStudentsSchema>

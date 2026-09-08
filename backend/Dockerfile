@@ -17,7 +17,14 @@ WORKDIR /app
 ARG DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
 COPY package*.json ./
 COPY prisma ./prisma
-RUN npm install
+# npm ci, not npm install: deterministic (installs exactly what's in
+# package-lock.json, no resolution step) and matches what CI's own
+# backend/frontend jobs already use. `npm install` here was hitting a real,
+# documented npm CLI bug (arborist dependency-graph builder throwing
+# "Cannot read properties of null (reading 'edgesOut')") inside this exact
+# build step — npm ci takes a different, more direct install codepath that
+# doesn't trigger it.
+RUN npm ci
 COPY . .
 RUN npm run db:generate && npm run build
 
@@ -31,7 +38,7 @@ ENV NODE_ENV=production
 ARG DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
 COPY package*.json ./
 COPY prisma ./prisma
-RUN npm install --omit=dev
+RUN npm ci --omit=dev
 COPY --from=build /app/dist ./dist
 RUN npm run db:generate
 EXPOSE 4000
