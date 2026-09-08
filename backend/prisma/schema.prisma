@@ -257,6 +257,12 @@ model RegulationVersion {
   changedById   String
   changedBy     User       @relation(fields: [changedById], references: [id])
   changedAt     DateTime   @default(now())
+  /// Snapshot of the regulation's own fields plus its active rules at the
+  /// moment this version was created (captured in publishNewVersion /
+  /// duplicate) — what the version diff viewer actually compares. Nullable
+  /// because rows created before this field existed have no snapshot; the
+  /// diff UI says so explicitly rather than fabricating a comparison.
+  snapshot      Json?
 
   @@index([regulationId])
 }

@@ -1,5 +1,5 @@
 import { apiClient } from './client'
-import type { Regulation, RegulationStatus, RuleAuditEntry, RuleConflict } from '@/types'
+import type { Regulation, RegulationStatus, RegulationVersionDiff, RuleAuditEntry, RuleConflict } from '@/types'
 
 // `ruleCount` is a bonus field the backend adds on top of the shared
 // Regulation type (see backend/src/modules/regulations/regulations.mapper.ts)
@@ -76,5 +76,12 @@ export async function getRuleAuditHistory(id: string): Promise<RuleAuditEntry[]>
 
 export async function getConflicts(id: string): Promise<RuleConflict[]> {
   const res = await apiClient.get<{ success: true; data: RuleConflict[] }>(`/regulations/${id}/conflicts`)
+  return res.data.data
+}
+
+export async function getVersionDiff(id: string, fromVersionId: string, toVersionId: string): Promise<RegulationVersionDiff> {
+  const res = await apiClient.get<{ success: true; data: RegulationVersionDiff }>(`/regulations/${id}/version-diff`, {
+    params: { fromVersionId, toVersionId },
+  })
   return res.data.data
 }

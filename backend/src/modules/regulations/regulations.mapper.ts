@@ -29,10 +29,12 @@ export function toRegulation(row: RegulationWithDetail): Regulation & { ruleCoun
     programId: row.programId,
     description: row.description,
     versions: row.versions.map((v) => ({
+      id: v.id,
       version: v.version,
       changeSummary: v.changeSummary,
       changedBy: v.changedBy.name,
       changedAt: toDateOnly(v.changedAt),
+      hasSnapshot: v.snapshot != null,
     })),
     approvalHistory: row.approvalHistory.map((step) => ({
       step: step.step,

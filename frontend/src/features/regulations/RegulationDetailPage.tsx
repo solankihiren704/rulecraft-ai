@@ -30,7 +30,7 @@ import * as programsApi from '@/api/programs'
 import { ApiRequestError } from '@/api/client'
 import { describeConditionTree } from '@/utils/conditionTree'
 import type { RegulationWithRuleCount } from '@/api/regulations'
-import type { Program, Rule, RuleAuditEntry, RuleConflict } from '@/types'
+import type { Program, RegulationVersionDiff, Rule, RuleAuditEntry, RuleConflict } from '@/types'
 
 const allTabs = ['Overview', 'Rules', 'Version history', 'Approval workflow', 'Rule activity'] as const
 type Tab = (typeof allTabs)[number]
@@ -73,6 +73,12 @@ export default function RegulationDetailPage() {
   const [checkingConflicts, setCheckingConflicts] = useState(false)
   const [conflictModalOpen, setConflictModalOpen] = useState(false)
   const [pendingConflicts, setPendingConflicts] = useState<RuleConflict[]>([])
+
+  const [selectedVersionIds, setSelectedVersionIds] = useState<string[]>([])
+  const [diffModalOpen, setDiffModalOpen] = useState(false)
+  const [diffLoading, setDiffLoading] = useState(false)
+  const [diffError, setDiffError] = useState('')
+  const [versionDiff, setVersionDiff] = useState<RegulationVersionDiff | null>(null)
 
   async function loadData() {
     if (!regulationId) return
@@ -181,6 +187,37 @@ export default function RegulationDetailPage() {
     if (!regulation) return
     setConflictModalOpen(false)
     runAction(() => regulationsApi.approve(regulation.id), `${regulation.name} approved and published (conflicts acknowledged).`)
+  }
+
+  function toggleVersionSelect(id: string) {
+    setSelectedVersionIds((prev) => {
+      if (prev.includes(id)) return prev.filter((v) => v !== id)
+      if (prev.length >= 2) return [prev[1], id]
+      return [...prev, id]
+    })
+  }
+
+  async function compareVersions() {
+    if (!regulation || selectedVersionIds.length !== 2) return
+    // regulation.versions is already ordered newest-first by the backend
+    // using full timestamp precision — sort by that array position, not by
+    // re-parsing changedAt (a date-only display string), which collides
+    // whenever two versions were created on the same calendar day.
+    const [idA, idB] = selectedVersionIds
+    const indexA = regulation.versions.findIndex((v) => v.id === idA)
+    const indexB = regulation.versions.findIndex((v) => v.id === idB)
+    const [newer, older] = indexA <= indexB ? [regulation.versions[indexA], regulation.versions[indexB]] : [regulation.versions[indexB], regulation.versions[indexA]]
+    setDiffLoading(true)
+    setDiffError('')
+    setVersionDiff(null)
+    setDiffModalOpen(true)
+    try {
+      setVersionDiff(await regulationsApi.getVersionDiff(regulation.id, older.id, newer.id))
+    } catch (err) {
+      setDiffError(err instanceof ApiRequestError ? err.message : 'Failed to compare versions.')
+    } finally {
+      setDiffLoading(false)
+    }
   }
 
   async function duplicateRegulation() {
@@ -324,21 +361,54 @@ export default function RegulationDetailPage() {
       )}
 
       {activeTab === 'Version history' && (
-        <div className="space-y-3">
-          {regulation.versions.map((v) => (
-            <div key={v.version} className="flex gap-4 border border-[#e2e8f0] bg-[#ffffff] p-4">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#f1f5f9] text-[#475569]">
-                <GitCommitHorizontal size={15} />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-[#0f172a]">
-                  v{v.version} <span className="font-normal text-[#94a3b8]">· {v.changedAt}</span>
-                </p>
-                <p className="mt-1 text-xs text-[#64748b]">{v.changeSummary}</p>
-                <p className="mt-1 text-[10px] text-[#94a3b8]">by {v.changedBy}</p>
-              </div>
+        <div>
+          {regulation.versions.length >= 2 && (
+            <div className="mb-3 flex items-center justify-between border border-[#e2e8f0] bg-[#f8fafc] px-4 py-2.5 text-xs">
+              <span className="font-semibold text-[#475569]">
+                {selectedVersionIds.length === 0 ? 'Select two versions to compare' : `${selectedVersionIds.length} of 2 selected`}
+              </span>
+              <button
+                onClick={compareVersions}
+                disabled={selectedVersionIds.length !== 2}
+                className="rounded-lg bg-[#0f172a] px-3 py-1.5 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Compare selected
+              </button>
             </div>
-          ))}
+          )}
+          <div className="space-y-3">
+            {regulation.versions.map((v) => (
+              <div
+                key={v.id}
+                className={`flex gap-4 border p-4 ${selectedVersionIds.includes(v.id) ? 'border-[#4f46e5] bg-[#eef2ff]' : 'border-[#e2e8f0] bg-[#ffffff]'}`}
+              >
+                {regulation.versions.length >= 2 && (
+                  <input
+                    type="checkbox"
+                    checked={selectedVersionIds.includes(v.id)}
+                    onChange={() => toggleVersionSelect(v.id)}
+                    aria-label={`Select version ${v.version} for comparison`}
+                    className="mt-1 h-4 w-4 shrink-0 accent-[#4f46e5]"
+                  />
+                )}
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#f1f5f9] text-[#475569]">
+                  <GitCommitHorizontal size={15} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-[#0f172a]">
+                    v{v.version} <span className="font-normal text-[#94a3b8]">· {v.changedAt}</span>
+                    {!v.hasSnapshot && (
+                      <span className="ml-2 rounded bg-[#f1f5f9] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#94a3b8]">
+                        No snapshot
+                      </span>
+                    )}
+                  </p>
+                  <p className="mt-1 text-xs text-[#64748b]">{v.changeSummary}</p>
+                  <p className="mt-1 text-[10px] text-[#94a3b8]">by {v.changedBy}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -464,6 +534,99 @@ export default function RegulationDetailPage() {
             Acknowledge and publish anyway
           </button>
         </div>
+      </Modal>
+
+      <Modal open={diffModalOpen} title="Compare versions" onClose={() => setDiffModalOpen(false)} widthClassName="max-w-2xl">
+        {diffLoading ? (
+          <div className="flex justify-center py-10">
+            <Loader2 className="animate-spin text-[#475569]" size={24} />
+          </div>
+        ) : diffError ? (
+          <p className="text-xs font-semibold text-[#dc2626]">{diffError}</p>
+        ) : versionDiff ? (
+          <div>
+            <p className="mb-4 text-xs text-[#64748b]">
+              Comparing v{versionDiff.versionA.version} ({new Date(versionDiff.versionA.changedAt).toLocaleDateString()}) → v
+              {versionDiff.versionB.version} ({new Date(versionDiff.versionB.changedAt).toLocaleDateString()})
+            </p>
+            {!versionDiff.versionA.hasSnapshot || !versionDiff.versionB.hasSnapshot ? (
+              <EmptyState
+                icon={AlertCircle}
+                title="No snapshot to compare"
+                description="One or both of these versions were created before version snapshots existed, so there's nothing captured to diff. Versions created from now on support full comparison."
+              />
+            ) : versionDiff.metadataChanges.length === 0 &&
+              versionDiff.rulesAdded.length === 0 &&
+              versionDiff.rulesRemoved.length === 0 &&
+              versionDiff.rulesChanged.length === 0 ? (
+              <p className="text-xs text-[#94a3b8]">No differences found between these two versions.</p>
+            ) : (
+              <div className="max-h-[60vh] space-y-5 overflow-y-auto">
+                {versionDiff.metadataChanges.length > 0 && (
+                  <div>
+                    <p className="mb-2 text-xs font-bold uppercase tracking-wide text-[#475569]">Metadata changes</p>
+                    <div className="space-y-2">
+                      {versionDiff.metadataChanges.map((m, i) => (
+                        <div key={i} className="border border-[#e2e8f0] p-3 text-xs">
+                          <p className="font-semibold text-[#0f172a]">{m.field}</p>
+                          <p className="mt-1 text-[#dc2626] line-through">{m.from}</p>
+                          <p className="mt-1 text-[#16a34a]">{m.to}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {versionDiff.rulesAdded.length > 0 && (
+                  <div>
+                    <p className="mb-2 text-xs font-bold uppercase tracking-wide text-[#16a34a]">Rules added</p>
+                    <div className="space-y-2">
+                      {versionDiff.rulesAdded.map((r) => (
+                        <div key={r.id} className="border border-[#dcfce7] bg-[#f0fdf4] p-3 text-xs">
+                          <p className="font-semibold text-[#0f172a]">{r.name}</p>
+                          <p className="mt-1 text-[#475569]">
+                            {r.conditionSummary} → {r.outcome}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {versionDiff.rulesRemoved.length > 0 && (
+                  <div>
+                    <p className="mb-2 text-xs font-bold uppercase tracking-wide text-[#dc2626]">Rules removed</p>
+                    <div className="space-y-2">
+                      {versionDiff.rulesRemoved.map((r) => (
+                        <div key={r.id} className="border border-[#fee2e2] bg-[#fef2f2] p-3 text-xs">
+                          <p className="font-semibold text-[#0f172a]">{r.name}</p>
+                          <p className="mt-1 text-[#475569]">
+                            {r.conditionSummary} → {r.outcome}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {versionDiff.rulesChanged.length > 0 && (
+                  <div>
+                    <p className="mb-2 text-xs font-bold uppercase tracking-wide text-[#4f46e5]">Rules changed</p>
+                    <div className="space-y-2">
+                      {versionDiff.rulesChanged.map((r) => (
+                        <div key={r.id} className="border border-[#e0e7ff] bg-[#eef2ff] p-3 text-xs">
+                          <p className="font-semibold text-[#0f172a]">{r.name}</p>
+                          <ul className="mt-1 list-disc space-y-0.5 pl-4 text-[#475569]">
+                            {r.changes.map((c, i) => (
+                              <li key={i}>{c}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        ) : null}
       </Modal>
     </div>
   )

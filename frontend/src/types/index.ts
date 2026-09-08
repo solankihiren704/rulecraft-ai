@@ -65,10 +65,12 @@ export interface Student {
 export type RegulationStatus = 'draft' | 'review' | 'published' | 'archived'
 
 export interface RegulationVersion {
+  id: string
   version: string
   changeSummary: string
   changedBy: string
   changedAt: string
+  hasSnapshot: boolean
 }
 
 export interface ApprovalStep {
@@ -148,6 +150,41 @@ export interface RuleConflict {
   ruleBName: string
   field: string
   description: string
+}
+
+export interface VersionDiffMetadataChange {
+  field: string
+  from: string
+  to: string
+}
+
+export interface VersionDiffRuleSummary {
+  id: string
+  name: string
+  outcome: string
+  conditionSummary: string
+}
+
+export interface VersionDiffRuleChange {
+  id: string
+  name: string
+  changes: string[]
+}
+
+export interface VersionDiffSide {
+  id: string
+  version: string
+  changedAt: string
+  hasSnapshot: boolean
+}
+
+export interface RegulationVersionDiff {
+  versionA: VersionDiffSide
+  versionB: VersionDiffSide
+  metadataChanges: VersionDiffMetadataChange[]
+  rulesAdded: VersionDiffRuleSummary[]
+  rulesRemoved: VersionDiffRuleSummary[]
+  rulesChanged: VersionDiffRuleChange[]
 }
 
 export interface NotificationItem {

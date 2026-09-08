@@ -1,16 +1,4 @@
-import type {
-  AiMessage,
-  ApprovalStep,
-  AuthUser,
-  Department,
-  NotificationItem,
-  Program,
-  Regulation,
-  Semester,
-  SimulationResult,
-  Student,
-  Subject,
-} from '@/types'
+import type { AiMessage, AuthUser, Department, NotificationItem, Program, Semester, SimulationResult, Student, Subject } from '@/types'
 
 // Centralized mock data (Phase 1 — no backend yet). Every feature page reads
 // from here so cross-references (department -> program -> student counts,
@@ -55,89 +43,6 @@ export const students: Student[] = [
   { id: 'stu-6', name: 'Vikram Rao', email: 'vikram.rao@university.edu', studentId: 'STU2024006', programId: 'prog-btcs', year: 3, status: 'active', gpa: 2.9, enrollDate: '2021-08-20' },
   { id: 'stu-7', name: 'Ishita Bose', email: 'ishita.bose@university.edu', studentId: 'STU2024007', programId: 'prog-mtcs', year: 1, status: 'graduated', gpa: 3.95, enrollDate: '2019-08-15' },
 ]
-
-const approvalHistoryPublished: ApprovalStep[] = [
-  { step: 'submitted', by: 'Aarav Kulkarni', at: '2024-07-01T09:00:00Z', note: 'Initial draft submitted for review.' },
-  { step: 'reviewed', by: 'Dr. Meera Nair (HOD)', at: '2024-07-05T11:30:00Z', note: 'Reviewed, minor clarifications requested.' },
-  { step: 'approved', by: 'Academic Council', at: '2024-07-12T14:00:00Z' },
-  { step: 'published', by: 'Aarav Kulkarni', at: '2024-07-15T08:00:00Z' },
-]
-
-const approvalHistoryReview: ApprovalStep[] = [
-  { step: 'submitted', by: 'Aarav Kulkarni', at: '2024-08-18T09:00:00Z' },
-  { step: 'reviewed', by: 'Dr. Meera Nair (HOD)', at: '2024-08-21T10:15:00Z', note: 'Awaiting Academic Council sign-off.' },
-]
-
-const approvalHistoryDraft: ApprovalStep[] = [
-  { step: 'submitted', by: 'Aarav Kulkarni', at: '2024-08-20T09:00:00Z', note: 'Draft created, not yet submitted.' },
-]
-
-export const regulations: Regulation[] = [
-  {
-    id: 'reg-1',
-    name: 'Academic Performance Policy 2024',
-    code: 'AP-2024-001',
-    version: '2.1',
-    status: 'published',
-    effectiveDate: '2024-01-01',
-    lastModified: '2024-08-15',
-    programId: 'prog-btcs',
-    description: 'Governs minimum academic performance thresholds for continuation and honors eligibility.',
-    versions: [
-      { version: '2.1', changeSummary: 'Adjusted grace-mark cap from 5 to 8 marks.', changedBy: 'Aarav Kulkarni', changedAt: '2024-08-15' },
-      { version: '2.0', changeSummary: 'Introduced CGPA-based promotion tiers.', changedBy: 'Aarav Kulkarni', changedAt: '2024-03-02' },
-      { version: '1.0', changeSummary: 'Initial publication.', changedBy: 'Aarav Kulkarni', changedAt: '2024-01-01' },
-    ],
-    approvalHistory: approvalHistoryPublished,
-  },
-  {
-    id: 'reg-2',
-    name: 'Attendance Requirement',
-    code: 'AR-2024-002',
-    version: '1.5',
-    status: 'draft',
-    effectiveDate: '2024-09-01',
-    lastModified: '2024-08-20',
-    programId: 'prog-bte',
-    description: 'Defines minimum attendance percentage required for exam eligibility, with medical condonation rules.',
-    versions: [
-      { version: '1.5', changeSummary: 'Added medical condonation clause.', changedBy: 'Aarav Kulkarni', changedAt: '2024-08-20' },
-      { version: '1.0', changeSummary: 'Initial draft.', changedBy: 'Aarav Kulkarni', changedAt: '2024-06-01' },
-    ],
-    approvalHistory: approvalHistoryDraft,
-  },
-  {
-    id: 'reg-3',
-    name: 'Promotion and Continuation Policy',
-    code: 'PC-2024-003',
-    version: '3.0',
-    status: 'published',
-    effectiveDate: '2024-01-15',
-    lastModified: '2024-07-10',
-    programId: 'prog-btm',
-    description: 'Rules for year-to-year promotion, backlog (ATKT) limits, and re-admission criteria.',
-    versions: [
-      { version: '3.0', changeSummary: 'Backlog cap raised from 3 to 4 subjects.', changedBy: 'Dr. Meera Nair', changedAt: '2024-07-10' },
-    ],
-    approvalHistory: approvalHistoryPublished,
-  },
-  {
-    id: 'reg-4',
-    name: 'Exception Handling Framework',
-    code: 'EH-2024-004',
-    version: '1.0',
-    status: 'review',
-    effectiveDate: '2024-10-01',
-    lastModified: '2024-08-22',
-    programId: 'prog-bce',
-    description: 'Process for handling grace marks, appeals, and manual overrides to automated eligibility decisions.',
-    versions: [
-      { version: '1.0', changeSummary: 'Initial submission for council review.', changedBy: 'Aarav Kulkarni', changedAt: '2024-08-22' },
-    ],
-    approvalHistory: approvalHistoryReview,
-  },
-]
-
 
 export const authUsers: AuthUser[] = [
   { id: 'user-1', name: 'Aarav Kulkarni', email: 'aarav.kulkarni@rulecraft.edu', role: 'super_admin', avatarInitials: 'AK' },

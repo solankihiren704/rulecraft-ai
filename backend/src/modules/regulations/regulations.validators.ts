@@ -26,6 +26,12 @@ export const rejectRegulationSchema = z.object({
   note: z.string().trim().min(1, 'A reason is required when rejecting a regulation.'),
 })
 
+export const versionDiffQuerySchema = z.object({
+  fromVersionId: z.string().uuid('Select a version to compare from.'),
+  toVersionId: z.string().uuid('Select a version to compare to.'),
+})
+
 export type CreateRegulationInput = z.infer<typeof createRegulationSchema>
 export type UpdateRegulationInput = z.infer<typeof updateRegulationSchema>
 export type ListRegulationsQuery = z.infer<typeof listRegulationsQuerySchema>
+export type VersionDiffQuery = z.infer<typeof versionDiffQuerySchema>

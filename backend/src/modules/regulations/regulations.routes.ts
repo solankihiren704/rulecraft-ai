@@ -10,6 +10,7 @@ import {
   rejectRegulationSchema,
   reviewRegulationSchema,
   updateRegulationSchema,
+  versionDiffQuerySchema,
 } from './regulations.validators'
 
 export const regulationsRouter = Router()
@@ -41,3 +42,4 @@ regulationsRouter.post('/:id/archive', manage, validate({ params: idParamSchema 
 regulationsRouter.post('/:id/duplicate', manage, validate({ params: idParamSchema }), controller.duplicate)
 regulationsRouter.get('/:id/rule-audit', validate({ params: idParamSchema }), controller.ruleAuditHistory)
 regulationsRouter.get('/:id/conflicts', validate({ params: idParamSchema }), controller.conflicts)
+regulationsRouter.get('/:id/version-diff', validate({ params: idParamSchema, query: versionDiffQuerySchema }), controller.versionDiff)

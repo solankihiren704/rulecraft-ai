@@ -5,8 +5,10 @@ import { findById as findProgramById } from '@/modules/programs/programs.reposit
 import * as auditRepo from '@/modules/audit/audit.repository'
 import * as rulesRepo from '@/modules/rules/rules.repository'
 import { findRuleConflicts } from '@/rule-engine/conflicts'
-import type { Role, RuleAuditEntry, RuleConflict, ConditionNode } from '@/types'
+import { describeNode } from '@/rule-engine/evaluate'
+import type { Role, RuleAuditEntry, RuleConflict, ConditionNode, RegulationVersionDiff, VersionDiffRuleSummary } from '@/types'
 import * as repo from './regulations.repository'
+import type { RegulationSnapshot } from './regulations.repository'
 import { toRegulation } from './regulations.mapper'
 import type { CreateRegulationInput, ListRegulationsQuery, UpdateRegulationInput } from './regulations.validators'
 
@@ -95,13 +97,24 @@ function bumpMinorVersion(version: string) {
   return `${major}.${(minor || 0) + 1}`
 }
 
+async function buildSnapshot(regulation: { name: string; description: string; effectiveDate: Date }, regulationId: string) {
+  const activeRules = await rulesRepo.list({ regulationId, active: true })
+  return {
+    name: regulation.name,
+    description: regulation.description,
+    effectiveDate: regulation.effectiveDate.toISOString(),
+    rules: activeRules.map((r) => ({ id: r.id, name: r.name, type: r.type, outcome: r.outcome, active: r.active, conditionTree: r.conditionTree })),
+  }
+}
+
 export async function approve(id: string, byId: string) {
   const row = await repo.findById(id)
   if (!row) throw new ApiError(404, 'Regulation not found')
   if (row.status !== 'review') throw new ApiError(409, 'Only regulations under review can be approved.')
 
   const nextVersion = bumpMinorVersion(row.version)
-  await repo.publishNewVersion(id, nextVersion, 'Approved and published by Academic Council.', byId)
+  const snapshot = await buildSnapshot(row, id)
+  await repo.publishNewVersion(id, nextVersion, 'Approved and published by Academic Council.', byId, snapshot)
   await repo.addApprovalStep(id, 'approved', byId)
   return toRegulation((await repo.findById(id))!)
 }
@@ -174,4 +187,72 @@ export async function getRuleConflicts(id: string, role: Role): Promise<RuleConf
   const activeRules = await rulesRepo.list({ regulationId: id, active: true })
   const inputs = activeRules.map((r) => ({ id: r.id, name: r.name, conditionTree: r.conditionTree as unknown as ConditionNode }))
   return findRuleConflicts(inputs)
+}
+
+// --- Version diff ---------------------------------------------------------
+
+function ruleSummary(rule: RegulationSnapshot['rules'][number]): VersionDiffRuleSummary {
+  return {
+    id: rule.id,
+    name: rule.name,
+    outcome: rule.outcome,
+    conditionSummary: describeNode(rule.conditionTree as ConditionNode),
+  }
+}
+
+export async function getVersionDiff(regulationId: string, fromVersionId: string, toVersionId: string, role: Role): Promise<RegulationVersionDiff> {
+  if (!STAFF_WITH_FULL_VISIBILITY.includes(role)) {
+    throw new ApiError(403, 'You do not have permission to compare regulation versions.')
+  }
+  if (fromVersionId === toVersionId) {
+    throw new ApiError(400, 'Select two different versions to compare.')
+  }
+  const regulation = await repo.findById(regulationId)
+  if (!regulation) throw new ApiError(404, 'Regulation not found')
+
+  const rows = await repo.findVersionsForDiff(regulationId, [fromVersionId, toVersionId])
+  const versionA = rows.find((v) => v.id === fromVersionId)
+  const versionB = rows.find((v) => v.id === toVersionId)
+  if (!versionA || !versionB) throw new ApiError(404, 'One or both versions were not found on this regulation.')
+
+  const side = (v: (typeof rows)[number]) => ({ id: v.id, version: v.version, changedAt: v.changedAt.toISOString(), hasSnapshot: v.snapshot != null })
+
+  const snapshotA = versionA.snapshot as unknown as RegulationSnapshot | null
+  const snapshotB = versionB.snapshot as unknown as RegulationSnapshot | null
+
+  if (!snapshotA || !snapshotB) {
+    // No fabricated comparison when either side has nothing captured —
+    // that would be presenting a guess as a real diff.
+    return { versionA: side(versionA), versionB: side(versionB), metadataChanges: [], rulesAdded: [], rulesRemoved: [], rulesChanged: [] }
+  }
+
+  const metadataChanges: RegulationVersionDiff['metadataChanges'] = []
+  if (snapshotA.name !== snapshotB.name) metadataChanges.push({ field: 'Name', from: snapshotA.name, to: snapshotB.name })
+  if (snapshotA.description !== snapshotB.description) {
+    metadataChanges.push({ field: 'Description', from: snapshotA.description, to: snapshotB.description })
+  }
+  if (snapshotA.effectiveDate !== snapshotB.effectiveDate) {
+    metadataChanges.push({ field: 'Effective date', from: snapshotA.effectiveDate.slice(0, 10), to: snapshotB.effectiveDate.slice(0, 10) })
+  }
+
+  const rulesA = new Map(snapshotA.rules.map((r) => [r.id, r]))
+  const rulesB = new Map(snapshotB.rules.map((r) => [r.id, r]))
+
+  const rulesAdded = snapshotB.rules.filter((r) => !rulesA.has(r.id)).map(ruleSummary)
+  const rulesRemoved = snapshotA.rules.filter((r) => !rulesB.has(r.id)).map(ruleSummary)
+
+  const rulesChanged: RegulationVersionDiff['rulesChanged'] = []
+  for (const ruleA of snapshotA.rules) {
+    const ruleB = rulesB.get(ruleA.id)
+    if (!ruleB) continue
+    const changes: string[] = []
+    if (ruleA.name !== ruleB.name) changes.push(`Renamed from "${ruleA.name}" to "${ruleB.name}"`)
+    if (ruleA.outcome !== ruleB.outcome) changes.push(`Outcome changed from "${ruleA.outcome}" to "${ruleB.outcome}"`)
+    if (JSON.stringify(ruleA.conditionTree) !== JSON.stringify(ruleB.conditionTree)) {
+      changes.push(`Conditions changed from "${describeNode(ruleA.conditionTree as ConditionNode)}" to "${describeNode(ruleB.conditionTree as ConditionNode)}"`)
+    }
+    if (changes.length > 0) rulesChanged.push({ id: ruleA.id, name: ruleB.name, changes })
+  }
+
+  return { versionA: side(versionA), versionB: side(versionB), metadataChanges, rulesAdded, rulesRemoved, rulesChanged }
 }
