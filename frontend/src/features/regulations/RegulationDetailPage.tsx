@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   Archive,
   AlertCircle,
+  AlertTriangle,
   CheckCircle2,
   Copy,
   Edit2,
@@ -19,6 +20,7 @@ import {
 } from 'lucide-react'
 import { useToast } from '@/contexts/ToastContext'
 import { useAuth } from '@/contexts/AuthContext'
+import Modal from '@/components/ui/Modal'
 import StatusBadge from '@/components/ui/StatusBadge'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import EmptyState from '@/components/ui/EmptyState'
@@ -28,7 +30,7 @@ import * as programsApi from '@/api/programs'
 import { ApiRequestError } from '@/api/client'
 import { describeConditionTree } from '@/utils/conditionTree'
 import type { RegulationWithRuleCount } from '@/api/regulations'
-import type { Program, Rule, RuleAuditEntry } from '@/types'
+import type { Program, Rule, RuleAuditEntry, RuleConflict } from '@/types'
 
 const allTabs = ['Overview', 'Rules', 'Version history', 'Approval workflow', 'Rule activity'] as const
 type Tab = (typeof allTabs)[number]
@@ -67,6 +69,10 @@ export default function RegulationDetailPage() {
   const [ruleAudit, setRuleAudit] = useState<RuleAuditEntry[] | null>(null)
   const [auditLoading, setAuditLoading] = useState(false)
   const [auditError, setAuditError] = useState('')
+
+  const [checkingConflicts, setCheckingConflicts] = useState(false)
+  const [conflictModalOpen, setConflictModalOpen] = useState(false)
+  const [pendingConflicts, setPendingConflicts] = useState<RuleConflict[]>([])
 
   async function loadData() {
     if (!regulationId) return
@@ -153,6 +159,30 @@ export default function RegulationDetailPage() {
     }
   }
 
+  async function attemptPublish() {
+    if (!regulation) return
+    setCheckingConflicts(true)
+    try {
+      const conflicts = await regulationsApi.getConflicts(regulation.id)
+      if (conflicts.length > 0) {
+        setPendingConflicts(conflicts)
+        setConflictModalOpen(true)
+        return
+      }
+      await runAction(() => regulationsApi.approve(regulation.id), `${regulation.name} approved and published.`)
+    } catch (err) {
+      showToast(err instanceof ApiRequestError ? err.message : 'Failed to check rule conflicts.', 'error')
+    } finally {
+      setCheckingConflicts(false)
+    }
+  }
+
+  function publishDespiteConflicts() {
+    if (!regulation) return
+    setConflictModalOpen(false)
+    runAction(() => regulationsApi.approve(regulation.id), `${regulation.name} approved and published (conflicts acknowledged).`)
+  }
+
   async function duplicateRegulation() {
     if (!regulation) return
     setActionPending(true)
@@ -196,11 +226,12 @@ export default function RegulationDetailPage() {
           )}
           {regulation.status === 'review' && canApprove && (
             <button
-              disabled={actionPending}
-              onClick={() => runAction(() => regulationsApi.approve(regulation.id), `${regulation.name} approved and published.`)}
+              disabled={actionPending || checkingConflicts}
+              onClick={attemptPublish}
               className="flex items-center gap-2 rounded-lg bg-[#16a34a] px-3 py-2 text-xs font-semibold text-white hover:bg-[#15803d] disabled:opacity-60"
             >
-              <ShieldCheck size={14} /> Approve &amp; publish
+              {actionPending || checkingConflicts ? <Loader2 size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
+              Approve &amp; publish
             </button>
           )}
           {regulation.status === 'review' && canReject && (
@@ -395,6 +426,45 @@ export default function RegulationDetailPage() {
         }}
         onCancel={() => setConfirmAction(null)}
       />
+
+      <Modal
+        open={conflictModalOpen}
+        title="Rule conflicts detected"
+        description="Found before publishing — review these before deciding whether to proceed."
+        onClose={() => setConflictModalOpen(false)}
+        widthClassName="max-w-lg"
+      >
+        <div className="mb-4 flex items-start gap-2 border-l-4 border-[#f59e0b] bg-[#fffbeb] p-3 text-xs font-semibold text-[#92400e]">
+          <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+          This is a heuristic check, not a mathematically complete solver — it catches common same-field
+          contradictions (incompatible numeric bounds, conflicting equality checks) but can't prove two rules are
+          conflict-free in general. A clean result here isn't a guarantee; review the items below either way.
+        </div>
+        <div className="mb-4 max-h-72 space-y-2 overflow-y-auto">
+          {pendingConflicts.map((c, i) => (
+            <div key={i} className="border border-[#fee2e2] bg-[#fef2f2] p-3 text-xs">
+              <p className="font-semibold text-[#0f172a]">
+                {c.ruleAId === c.ruleBId ? c.ruleAName : `${c.ruleAName} ↔ ${c.ruleBName}`}
+              </p>
+              <p className="mt-1 text-[#7f1d1d]">{c.description}</p>
+            </div>
+          ))}
+        </div>
+        <div className="flex justify-end gap-3">
+          <button
+            onClick={() => setConflictModalOpen(false)}
+            className="rounded-lg border border-[#e2e8f0] px-4 py-2 text-xs font-semibold text-[#475569] hover:bg-[#f1f5f9]"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={publishDespiteConflicts}
+            className="rounded-lg bg-[#f59e0b] px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[#d97706]"
+          >
+            Acknowledge and publish anyway
+          </button>
+        </div>
+      </Modal>
     </div>
   )
 }

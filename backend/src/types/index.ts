@@ -132,6 +132,15 @@ export interface RuleAuditEntry {
   ruleName: string
 }
 
+export interface RuleConflict {
+  ruleAId: string
+  ruleAName: string
+  ruleBId: string
+  ruleBName: string
+  field: string
+  description: string
+}
+
 export interface NotificationItem {
   id: string
   title: string

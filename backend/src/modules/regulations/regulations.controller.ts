@@ -76,3 +76,9 @@ export async function ruleAuditHistory(req: Request, res: Response) {
   const data = await service.getRuleAuditHistory(req.params.id as string, user.role)
   return ok(res, data)
 }
+
+export async function conflicts(req: Request, res: Response) {
+  const user = requireUser(req)
+  const data = await service.getRuleConflicts(req.params.id as string, user.role)
+  return ok(res, data)
+}

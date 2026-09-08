@@ -3,7 +3,9 @@ import type { RegulationStatus } from '@prisma/client'
 import { ApiError } from '@/middleware/errorHandler'
 import { findById as findProgramById } from '@/modules/programs/programs.repository'
 import * as auditRepo from '@/modules/audit/audit.repository'
-import type { Role, RuleAuditEntry } from '@/types'
+import * as rulesRepo from '@/modules/rules/rules.repository'
+import { findRuleConflicts } from '@/rule-engine/conflicts'
+import type { Role, RuleAuditEntry, RuleConflict, ConditionNode } from '@/types'
 import * as repo from './regulations.repository'
 import { toRegulation } from './regulations.mapper'
 import type { CreateRegulationInput, ListRegulationsQuery, UpdateRegulationInput } from './regulations.validators'
@@ -155,4 +157,21 @@ export async function getRuleAuditHistory(id: string, role: Role): Promise<RuleA
       ruleName: metadata.ruleName ?? 'Unknown rule',
     }
   })
+}
+
+// Heuristic same-field contradiction check across a regulation's active
+// rules — see rule-engine/conflicts.ts for exactly what it can and can't
+// catch. Scoped to active rules only: an inactive rule doesn't have to
+// pass for the regulation to reach "eligible", so it can't create a real
+// conflict for a live eligibility check.
+export async function getRuleConflicts(id: string, role: Role): Promise<RuleConflict[]> {
+  if (!STAFF_WITH_FULL_VISIBILITY.includes(role)) {
+    throw new ApiError(403, 'You do not have permission to check rule conflicts.')
+  }
+  const regulation = await repo.findById(id)
+  if (!regulation) throw new ApiError(404, 'Regulation not found')
+
+  const activeRules = await rulesRepo.list({ regulationId: id, active: true })
+  const inputs = activeRules.map((r) => ({ id: r.id, name: r.name, conditionTree: r.conditionTree as unknown as ConditionNode }))
+  return findRuleConflicts(inputs)
 }

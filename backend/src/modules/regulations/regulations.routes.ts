@@ -40,3 +40,4 @@ regulationsRouter.post(
 regulationsRouter.post('/:id/archive', manage, validate({ params: idParamSchema }), controller.archive)
 regulationsRouter.post('/:id/duplicate', manage, validate({ params: idParamSchema }), controller.duplicate)
 regulationsRouter.get('/:id/rule-audit', validate({ params: idParamSchema }), controller.ruleAuditHistory)
+regulationsRouter.get('/:id/conflicts', validate({ params: idParamSchema }), controller.conflicts)
