@@ -137,10 +137,16 @@ jobs:
       # frontend builds don't evict each other. Unchanged layers (base
       # image pulls, npm install) get reused instead of rebuilt on every
       # push — only layers after an actual code/dependency change re-run.
+      # Build context is the monorepo root, not ./backend — npm workspaces
+      # keeps a single package-lock.json at the root, and `npm ci` inside
+      # each Dockerfile needs it in its build context (see backend/
+      # Dockerfile's header comment for the full story of why the old
+      # per-service context silently failed every run).
       - name: Build backend image
         uses: docker/build-push-action@v6
         with:
-          context: ./backend
+          context: .
+          file: ./backend/Dockerfile
           push: false
           cache-from: type=gha,scope=docker-backend
           cache-to: type=gha,scope=docker-backend,mode=max
@@ -148,7 +154,8 @@ jobs:
       - name: Build frontend image
         uses: docker/build-push-action@v6
         with:
-          context: ./frontend
+          context: .
+          file: ./frontend/Dockerfile
           push: false
           build-args: |
             VITE_API_URL=http://localhost:4000/api

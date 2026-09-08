@@ -1,0 +1,14 @@
+# Applies to both backend/Dockerfile and frontend/Dockerfile — both now
+# build from this repo root (see docker-compose.yml and
+# .github/workflows/ci.yml), since npm workspaces keeps a single
+# package-lock.json here that `npm ci` needs in its build context.
+# Docker's dockerignore matching is gitignore-style: a bare pattern like
+# `node_modules` matches at any depth, so this one file covers
+# backend/node_modules, frontend/.env, backend/tests, etc. Critically,
+# `.env` here is what stops COPY backend ./backend and COPY frontend
+# ./frontend from baking local secrets into the image.
+node_modules
+dist
+.env
+tests
+.git

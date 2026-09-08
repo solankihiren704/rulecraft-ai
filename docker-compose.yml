@@ -19,8 +19,11 @@ services:
 
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      # Root context, not ./backend — npm workspaces keeps a single
+      # package-lock.json at the repo root that `npm ci` inside the
+      # Dockerfile needs access to. See backend/Dockerfile's header.
+      context: .
+      dockerfile: backend/Dockerfile
     container_name: rulecraft-backend
     restart: unless-stopped
     env_file:
@@ -35,8 +38,8 @@ services:
 
   frontend:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: frontend/Dockerfile
       # VITE_API_URL must be a build arg, not a runtime `environment:` entry
       # — Vite inlines import.meta.env.VITE_* into the bundle when `vite
       # build` runs (inside the image build), which happens before any
