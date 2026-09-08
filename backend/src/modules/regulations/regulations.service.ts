@@ -2,7 +2,8 @@ import crypto from 'node:crypto'
 import type { RegulationStatus } from '@prisma/client'
 import { ApiError } from '@/middleware/errorHandler'
 import { findById as findProgramById } from '@/modules/programs/programs.repository'
-import type { Role } from '@/types'
+import * as auditRepo from '@/modules/audit/audit.repository'
+import type { Role, RuleAuditEntry } from '@/types'
 import * as repo from './regulations.repository'
 import { toRegulation } from './regulations.mapper'
 import type { CreateRegulationInput, ListRegulationsQuery, UpdateRegulationInput } from './regulations.validators'
@@ -130,4 +131,28 @@ export async function duplicate(id: string, createdById: string) {
   const newCode = `${source.code}-COPY-${suffix}`
   const created = await repo.duplicate(id, newCode, createdById)
   return toRegulation(created!)
+}
+
+// Who drafted, edited, activated/deactivated, or deleted which rule on this
+// regulation — complements the existing version history (regulation
+// content changes) and approval workflow (submit/review/publish) tabs,
+// neither of which touches individual-rule activity.
+export async function getRuleAuditHistory(id: string, role: Role): Promise<RuleAuditEntry[]> {
+  if (!STAFF_WITH_FULL_VISIBILITY.includes(role)) {
+    throw new ApiError(403, 'You do not have permission to view rule activity history.')
+  }
+  const regulation = await repo.findById(id)
+  if (!regulation) throw new ApiError(404, 'Regulation not found')
+
+  const rows = await auditRepo.listForRegulationRules(id)
+  return rows.map((row) => {
+    const metadata = (row.metadata as { ruleName?: string } | null) ?? {}
+    return {
+      id: row.id,
+      action: row.action,
+      at: row.at.toISOString(),
+      byName: row.user?.name ?? 'Unknown',
+      ruleName: metadata.ruleName ?? 'Unknown rule',
+    }
+  })
 }

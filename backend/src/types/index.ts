@@ -124,6 +124,14 @@ export interface Rule {
   active: boolean
 }
 
+export interface RuleAuditEntry {
+  id: string
+  action: string
+  at: string
+  byName: string
+  ruleName: string
+}
+
 export interface NotificationItem {
   id: string
   title: string

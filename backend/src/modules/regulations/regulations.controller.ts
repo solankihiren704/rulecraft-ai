@@ -70,3 +70,9 @@ export async function duplicate(req: Request, res: Response) {
   const data = await service.duplicate(req.params.id as string, user.id)
   return created(res, data)
 }
+
+export async function ruleAuditHistory(req: Request, res: Response) {
+  const user = requireUser(req)
+  const data = await service.getRuleAuditHistory(req.params.id as string, user.role)
+  return ok(res, data)
+}

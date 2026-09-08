@@ -6,11 +6,15 @@ import {
   AlertCircle,
   CheckCircle2,
   Copy,
+  Edit2,
   FileText,
   GitCommitHorizontal,
+  History,
   Loader2,
+  Plus,
   Send,
   ShieldCheck,
+  Trash2,
   XCircle,
 } from 'lucide-react'
 import { useToast } from '@/contexts/ToastContext'
@@ -24,10 +28,18 @@ import * as programsApi from '@/api/programs'
 import { ApiRequestError } from '@/api/client'
 import { describeConditionTree } from '@/utils/conditionTree'
 import type { RegulationWithRuleCount } from '@/api/regulations'
-import type { Program, Rule } from '@/types'
+import type { Program, Rule, RuleAuditEntry } from '@/types'
 
-const tabs = ['Overview', 'Rules', 'Version history', 'Approval workflow'] as const
-type Tab = (typeof tabs)[number]
+const allTabs = ['Overview', 'Rules', 'Version history', 'Approval workflow', 'Rule activity'] as const
+type Tab = (typeof allTabs)[number]
+
+const ruleActionMeta: Record<string, { label: string; icon: typeof History; tone: string }> = {
+  'rule.created': { label: 'Created', icon: Plus, tone: 'bg-[#dcfce7] text-[#16a34a]' },
+  'rule.updated': { label: 'Edited', icon: Edit2, tone: 'bg-[#e0e7ff] text-[#4f46e5]' },
+  'rule.activated': { label: 'Activated', icon: CheckCircle2, tone: 'bg-[#dcfce7] text-[#16a34a]' },
+  'rule.deactivated': { label: 'Deactivated', icon: XCircle, tone: 'bg-[#f1f5f9] text-[#475569]' },
+  'rule.deleted': { label: 'Deleted', icon: Trash2, tone: 'bg-[#fee2e2] text-[#dc2626]' },
+}
 
 const REJECT_NOTE = 'Rejected — returned to draft for revisions.'
 
@@ -38,6 +50,8 @@ export default function RegulationDetailPage() {
   const canManage = user?.role === 'super_admin' || user?.role === 'registrar'
   const canApprove = user?.role === 'super_admin'
   const canReject = user?.role === 'super_admin' || user?.role === 'hod'
+  const canViewRuleActivity = user?.role === 'super_admin' || user?.role === 'registrar' || user?.role === 'hod'
+  const visibleTabs = canViewRuleActivity ? allTabs : allTabs.filter((t) => t !== 'Rule activity')
 
   const [regulation, setRegulation] = useState<RegulationWithRuleCount | null>(null)
   const [regulationRules, setRegulationRules] = useState<Rule[]>([])
@@ -49,6 +63,10 @@ export default function RegulationDetailPage() {
 
   const [activeTab, setActiveTab] = useState<Tab>('Overview')
   const [confirmAction, setConfirmAction] = useState<'reject' | 'archive' | null>(null)
+
+  const [ruleAudit, setRuleAudit] = useState<RuleAuditEntry[] | null>(null)
+  const [auditLoading, setAuditLoading] = useState(false)
+  const [auditError, setAuditError] = useState('')
 
   async function loadData() {
     if (!regulationId) return
@@ -79,6 +97,17 @@ export default function RegulationDetailPage() {
     loadData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [regulationId])
+
+  useEffect(() => {
+    if (activeTab !== 'Rule activity' || ruleAudit !== null || !regulationId) return
+    setAuditLoading(true)
+    setAuditError('')
+    regulationsApi
+      .getRuleAuditHistory(regulationId)
+      .then(setRuleAudit)
+      .catch((err) => setAuditError(err instanceof ApiRequestError ? err.message : 'Failed to load rule activity.'))
+      .finally(() => setAuditLoading(false))
+  }, [activeTab, ruleAudit, regulationId])
 
   const programName = useMemo(
     () => programs.find((p) => p.id === regulation?.programId)?.name ?? 'Unknown program',
@@ -205,7 +234,7 @@ export default function RegulationDetailPage() {
       </div>
 
       <div className="mb-6 flex gap-1 border-b border-[#e2e8f0]">
-        {tabs.map((tab) => (
+        {visibleTabs.map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -296,6 +325,51 @@ export default function RegulationDetailPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {activeTab === 'Rule activity' && (
+        <div>
+          {auditLoading ? (
+            <div className="flex justify-center py-10">
+              <Loader2 className="animate-spin text-[#475569]" size={24} />
+            </div>
+          ) : auditError ? (
+            <EmptyState
+              icon={AlertCircle}
+              title="Couldn't load rule activity"
+              description={auditError}
+              action={{ label: 'Retry', onClick: () => setRuleAudit(null) }}
+            />
+          ) : !ruleAudit || ruleAudit.length === 0 ? (
+            <EmptyState
+              icon={History}
+              title="No rule activity yet"
+              description="Creating, editing, activating, or deleting one of this regulation's rules will show up here with who did it and when."
+            />
+          ) : (
+            <div className="space-y-3">
+              {ruleAudit.map((entry) => {
+                const meta = ruleActionMeta[entry.action] ?? { label: entry.action, icon: History, tone: 'bg-[#f1f5f9] text-[#475569]' }
+                const Icon = meta.icon
+                return (
+                  <div key={entry.id} className="flex gap-4 border border-[#e2e8f0] bg-[#ffffff] p-4">
+                    <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${meta.tone}`}>
+                      <Icon size={15} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-[#0f172a]">
+                        {meta.label} <span className="font-normal text-[#94a3b8]">· {entry.ruleName}</span>
+                      </p>
+                      <p className="mt-1 text-xs text-[#64748b]">
+                        by {entry.byName} · {new Date(entry.at).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
       )}
 

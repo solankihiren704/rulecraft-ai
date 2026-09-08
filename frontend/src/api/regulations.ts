@@ -1,5 +1,5 @@
 import { apiClient } from './client'
-import type { Regulation, RegulationStatus } from '@/types'
+import type { Regulation, RegulationStatus, RuleAuditEntry } from '@/types'
 
 // `ruleCount` is a bonus field the backend adds on top of the shared
 // Regulation type (see backend/src/modules/regulations/regulations.mapper.ts)
@@ -66,5 +66,10 @@ export async function archive(id: string): Promise<RegulationWithRuleCount> {
 
 export async function duplicate(id: string): Promise<RegulationWithRuleCount> {
   const res = await apiClient.post<{ success: true; data: RegulationWithRuleCount }>(`/regulations/${id}/duplicate`)
+  return res.data.data
+}
+
+export async function getRuleAuditHistory(id: string): Promise<RuleAuditEntry[]> {
+  const res = await apiClient.get<{ success: true; data: RuleAuditEntry[] }>(`/regulations/${id}/rule-audit`)
   return res.data.data
 }

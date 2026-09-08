@@ -21,21 +21,25 @@ export async function getById(req: Request, res: Response) {
 }
 
 export async function create(req: Request, res: Response) {
-  const data = await service.create(req.body)
+  const user = requireUser(req)
+  const data = await service.create(req.body, user.id)
   return created(res, data)
 }
 
 export async function update(req: Request, res: Response) {
-  const data = await service.update(req.params.id as string, req.body)
+  const user = requireUser(req)
+  const data = await service.update(req.params.id as string, req.body, user.id)
   return ok(res, data)
 }
 
 export async function remove(req: Request, res: Response) {
-  await service.remove(req.params.id as string)
+  const user = requireUser(req)
+  await service.remove(req.params.id as string, user.id)
   return noContent(res)
 }
 
 export async function toggleActive(req: Request, res: Response) {
-  const data = await service.toggleActive(req.params.id as string)
+  const user = requireUser(req)
+  const data = await service.toggleActive(req.params.id as string, user.id)
   return ok(res, data)
 }
