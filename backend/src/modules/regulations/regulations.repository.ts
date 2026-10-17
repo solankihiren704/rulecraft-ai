@@ -15,11 +15,18 @@ export interface RegulationSnapshot {
   rules: { id: string; name: string; type: string; outcome: string; active: boolean; conditionTree: unknown }[]
 }
 
-export function list(filters: { status?: RegulationStatus; programId?: string; search?: string; visibleStatuses?: RegulationStatus[] }) {
+export function list(filters: {
+  status?: RegulationStatus
+  programId?: string
+  departmentId?: string
+  search?: string
+  visibleStatuses?: RegulationStatus[]
+}) {
   return prisma.regulation.findMany({
     where: {
       status: filters.status ?? (filters.visibleStatuses ? { in: filters.visibleStatuses } : undefined),
       programId: filters.programId,
+      program: filters.departmentId ? { departmentId: filters.departmentId } : undefined,
       name: filters.search ? { contains: filters.search, mode: 'insensitive' } : undefined,
     },
     include: detailInclude,
@@ -28,7 +35,13 @@ export function list(filters: { status?: RegulationStatus; programId?: string; s
 }
 
 export function findById(id: string) {
-  return prisma.regulation.findUnique({ where: { id }, include: detailInclude })
+  return prisma.regulation.findUnique({
+    where: { id },
+    include: {
+      ...detailInclude,
+      program: { select: { departmentId: true, name: true, code: true } },
+    },
+  })
 }
 
 export function findByCode(code: string) {

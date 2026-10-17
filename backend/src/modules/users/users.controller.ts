@@ -9,27 +9,31 @@ function requireUser(req: Request) {
 }
 
 export async function list(req: Request, res: Response) {
-  const data = await service.list(req.query as never)
+  const user = requireUser(req)
+  const data = await service.list(req.query as never, user)
   return ok(res, data)
 }
 
 export async function getById(req: Request, res: Response) {
-  const data = await service.getById(req.params.id as string)
+  const user = requireUser(req)
+  const data = await service.getById(req.params.id as string, user)
   return ok(res, data)
 }
 
 export async function create(req: Request, res: Response) {
-  const data = await service.create(req.body)
+  const user = requireUser(req)
+  const data = await service.create(req.body, user)
   return created(res, data)
 }
 
 export async function update(req: Request, res: Response) {
-  const data = await service.update(req.params.id as string, req.body)
+  const user = requireUser(req)
+  const data = await service.update(req.params.id as string, req.body, user)
   return ok(res, data)
 }
 
 export async function remove(req: Request, res: Response) {
   const user = requireUser(req)
-  await service.remove(req.params.id as string, user.id)
+  await service.remove(req.params.id as string, user.id, user)
   return noContent(res)
 }

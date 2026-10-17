@@ -22,6 +22,8 @@ import { studentsRouter } from '@/modules/students/students.routes'
 import { usersRouter } from '@/modules/users/users.routes'
 import { reportsRouter } from '@/modules/reports/reports.routes'
 import { dashboardRouter } from '@/modules/dashboard/dashboard.routes'
+import { publicVerifyRouter, resultsWorkflowRouter } from '@/modules/results/results.routes'
+import { aiRouter } from '@/modules/ai/ai.routes'
 
 /**
  * app.ts
@@ -71,9 +73,9 @@ export function createApp() {
   app.use('/api/users', usersRouter)
   app.use('/api/reports', reportsRouter)
   app.use('/api/dashboard', dashboardRouter)
-
-  // Remaining feature routers are mounted here as each module is built:
-  // app.use('/api/ai', aiRouter)
+  app.use('/api/public', publicVerifyRouter)
+  app.use('/api/results', resultsWorkflowRouter)
+  app.use('/api/ai', aiRouter)
 
   app.use(notFoundHandler)
   app.use(errorHandler)

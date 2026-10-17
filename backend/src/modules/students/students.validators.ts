@@ -8,6 +8,7 @@ export const createStudentSchema = z.object({
   year: z.coerce.number().int().min(1).max(6),
   status: z.enum(['active', 'suspended', 'graduated']).default('active'),
   gpa: z.coerce.number().min(0, 'GPA cannot be negative.').max(10, 'GPA cannot exceed 10.'),
+  attendance: z.coerce.number().min(0, 'Attendance cannot be negative.').max(100, 'Attendance cannot exceed 100%.').optional().default(85),
 })
 
 export const updateStudentSchema = createStudentSchema
@@ -24,9 +25,39 @@ export const importStudentRowSchema = z.object({
   email: z.string().trim().min(1, 'Email is required.').email('Enter a valid email address.'),
   studentId: z.string().trim().min(3, 'Student ID is required.'),
   programCode: z.string().trim().min(1, 'Program code is required.').toUpperCase(),
-  year: z.coerce.number().int().min(1, 'Year must be at least 1.').max(6, 'Year cannot exceed 6.'),
-  status: z.enum(['active', 'suspended', 'graduated']).default('active'),
-  gpa: z.coerce.number().min(0, 'GPA cannot be negative.').max(10, 'GPA cannot exceed 10.'),
+  departmentName: z.string().trim().optional(),
+  departmentCode: z.string().trim().optional(),
+  programName: z.string().trim().optional(),
+  year: z.preprocess((val) => {
+    if (typeof val === 'string') {
+      const match = val.match(/\d+/)
+      return match ? Number(match[0]) : val
+    }
+    return val
+  }, z.coerce.number().int().min(1, 'Year must be at least 1.').max(6, 'Year cannot exceed 6.')),
+  status: z
+    .preprocess((val) => {
+      if (typeof val === 'string') {
+        const lower = val.trim().toLowerCase()
+        if (!lower || lower === 'active' || lower === 'enrolled' || lower === 'regular') return 'active'
+        if (lower === 'suspended' || lower === 'inactive' || lower === 'detained') return 'suspended'
+        if (lower === 'graduated' || lower === 'passed' || lower === 'completed') return 'graduated'
+        return lower
+      }
+      return val ?? 'active'
+    }, z.enum(['active', 'suspended', 'graduated']))
+    .default('active'),
+  gpa: z.preprocess(
+    (val) => (val === '' || val === undefined || val === null ? 3.5 : val),
+    z.coerce.number().min(0, 'GPA cannot be negative.').max(10, 'GPA cannot exceed 10.'),
+  ),
+  attendance: z.preprocess((val) => {
+    if (typeof val === 'string') {
+      const cleaned = val.replace(/%/g, '').trim()
+      return cleaned === '' ? 85 : Number(cleaned)
+    }
+    return val ?? 85
+  }, z.coerce.number().min(0, 'Attendance cannot be negative.').max(100, 'Attendance cannot exceed 100%.').default(85)),
 })
 
 export const importTemplateQuerySchema = z.object({

@@ -8,6 +8,7 @@ interface AuthContextValue {
   isAuthenticated: boolean
   isLoading: boolean
   login: (email: string, password: string) => Promise<{ ok: true } | { ok: false; error: string }>
+  register: (data: authApi.RegisterStudentData) => Promise<{ ok: true } | { ok: false; error: string }>
   logout: () => void
 }
 
@@ -51,6 +52,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function register(data: authApi.RegisterStudentData) {
+    try {
+      const { user: registeredUser, accessToken } = await authApi.register(data)
+      setAccessToken(accessToken)
+      setUser(registeredUser)
+      return { ok: true as const }
+    } catch (err) {
+      const message = err instanceof ApiRequestError ? err.message : 'Unable to create student account.'
+      return { ok: false as const, error: message }
+    }
+  }
+
   async function logout() {
     try {
       await authApi.logout()
@@ -63,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   )

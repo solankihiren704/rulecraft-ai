@@ -41,7 +41,7 @@ describe('auth.service login', () => {
     vi.mocked(repo.findUserByEmail).mockResolvedValue(null)
     await expect(login({ email: 'nobody@nowhere.com', password: 'x' })).rejects.toMatchObject({
       statusCode: 401,
-      message: 'No account matches that email and password.',
+      message: 'No account matches that Email or Student ID and password.',
     })
   })
 

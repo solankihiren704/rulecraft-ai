@@ -23,6 +23,7 @@ import {
   Network,
 } from 'lucide-react'
 import { useToast } from '@/contexts/ToastContext'
+import { useAuth } from '@/contexts/AuthContext'
 import Modal from '@/components/ui/Modal'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import EmptyState from '@/components/ui/EmptyState'
@@ -70,7 +71,9 @@ const subjectSchema = z.object({
 })
 
 export default function AcademicStructurePage() {
+  const { user } = useAuth()
   const { showToast } = useToast()
+  const canManage = user?.role === 'super_admin' || user?.role === 'registrar'
   const [activeTab, setActiveTab] = useState<TabId>('departments')
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -433,22 +436,29 @@ export default function AcademicStructurePage() {
           <h1 className="font-display text-[32px] font-bold tracking-[-0.04em] text-[#0f172a]">Academic Structure</h1>
           <p className="mt-2 text-sm text-[#64748b]">Manage departments, programs, semesters, and subjects.</p>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={openImport}
-            className="flex w-fit items-center gap-2 rounded-lg border border-[#e2e8f0] bg-[#ffffff] px-4 py-2.5 text-xs font-semibold text-[#475569] shadow-sm transition hover:bg-[#f1f5f9]"
-          >
-            <Upload size={15} /> Bulk import
-          </button>
-          {activeTab !== 'hierarchy' && (
+        {canManage ? (
+          <div className="flex gap-2">
             <button
-              onClick={openAdd}
-              className="flex w-fit items-center gap-2 rounded-lg bg-[#0f172a] px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#1e293b]"
+              onClick={openImport}
+              className="flex w-fit items-center gap-2 rounded-lg border border-[#e2e8f0] bg-[#ffffff] px-4 py-2.5 text-xs font-semibold text-[#475569] shadow-sm transition hover:bg-[#f1f5f9]"
             >
-              <Plus size={15} /> Add {activeTab.slice(0, -1)}
+              <Upload size={15} /> Bulk import
             </button>
-          )}
-        </div>
+            {activeTab !== 'hierarchy' && (
+              <button
+                onClick={openAdd}
+                className="flex w-fit items-center gap-2 rounded-lg bg-[#0f172a] px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#1e293b]"
+              >
+                <Plus size={15} /> Add {activeTab.slice(0, -1)}
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-medium text-slate-600 shadow-sm">
+            <Building2 size={14} className="text-indigo-600" />
+            <span>Catalog View-Only (Managed by University Registrar)</span>
+          </div>
+        )}
       </div>
 
       <div className="mb-6 flex gap-1 border-b border-[#e2e8f0]">
@@ -503,26 +513,28 @@ export default function AcademicStructurePage() {
                           <h3 className="font-semibold text-[#0f172a]">{dept.name}</h3>
                           <p className="text-xs text-[#94a3b8]">Code: {dept.code}</p>
                         </div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => {
-                              setEditingDept(dept)
-                              deptForm.reset({ name: dept.name, code: dept.code })
-                              setDeptModalOpen(true)
-                            }}
-                            className="rounded p-1 text-[#475569] hover:bg-[#e2e8f0]"
-                            aria-label={`Edit ${dept.name}`}
-                          >
-                            <Edit2 size={16} />
-                          </button>
-                          <button
-                            onClick={() => setDeletingDept(dept)}
-                            className="rounded p-1 text-[#dc2626] hover:bg-[#fee2e2]"
-                            aria-label={`Delete ${dept.name}`}
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
+                        {canManage && (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => {
+                                setEditingDept(dept)
+                                deptForm.reset({ name: dept.name, code: dept.code })
+                                setDeptModalOpen(true)
+                              }}
+                              className="rounded p-1 text-[#475569] hover:bg-[#e2e8f0]"
+                              aria-label={`Edit ${dept.name}`}
+                            >
+                              <Edit2 size={16} />
+                            </button>
+                            <button
+                              onClick={() => setDeletingDept(dept)}
+                              className="rounded p-1 text-[#dc2626] hover:bg-[#fee2e2]"
+                              aria-label={`Delete ${dept.name}`}
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        )}
                       </div>
                       <div className="mt-4 grid grid-cols-2 gap-4">
                         <div>
@@ -553,7 +565,7 @@ export default function AcademicStructurePage() {
                         <th className="px-5 py-3 text-left font-semibold text-[#475569]">Code</th>
                         <th className="px-5 py-3 text-left font-semibold text-[#475569]">Department</th>
                         <th className="px-5 py-3 text-left font-semibold text-[#475569]">Years</th>
-                        <th className="px-5 py-3 text-center font-semibold text-[#475569]">Actions</th>
+                        {canManage && <th className="px-5 py-3 text-center font-semibold text-[#475569]">Actions</th>}
                       </tr>
                     </thead>
                     <tbody>
@@ -563,28 +575,30 @@ export default function AcademicStructurePage() {
                           <td className="px-5 py-4 text-[#475569]">{prog.code}</td>
                           <td className="px-5 py-4 text-[#475569]">{departmentName(prog.departmentId)}</td>
                           <td className="px-5 py-4 text-[#475569]">{prog.years}</td>
-                          <td className="px-5 py-4">
-                            <div className="flex justify-center gap-2">
-                              <button
-                                onClick={() => {
-                                  setEditingProg(prog)
-                                  progForm.reset(prog)
-                                  setProgModalOpen(true)
-                                }}
-                                className="rounded p-1 text-[#475569] hover:bg-[#e2e8f0]"
-                                aria-label={`Edit ${prog.name}`}
-                              >
-                                <Edit2 size={16} />
-                              </button>
-                              <button
-                                onClick={() => setDeletingProg(prog)}
-                                className="rounded p-1 text-[#dc2626] hover:bg-[#fee2e2]"
-                                aria-label={`Delete ${prog.name}`}
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          </td>
+                          {canManage && (
+                            <td className="px-5 py-4">
+                              <div className="flex justify-center gap-2">
+                                <button
+                                  onClick={() => {
+                                    setEditingProg(prog)
+                                    progForm.reset(prog)
+                                    setProgModalOpen(true)
+                                  }}
+                                  className="rounded p-1 text-[#475569] hover:bg-[#e2e8f0]"
+                                  aria-label={`Edit ${prog.name}`}
+                                >
+                                  <Edit2 size={16} />
+                                </button>
+                                <button
+                                  onClick={() => setDeletingProg(prog)}
+                                  className="rounded p-1 text-[#dc2626] hover:bg-[#fee2e2]"
+                                  aria-label={`Delete ${prog.name}`}
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            </td>
+                          )}
                         </tr>
                       ))}
                     </tbody>
@@ -607,7 +621,7 @@ export default function AcademicStructurePage() {
                         <th className="px-5 py-3 text-left font-semibold text-[#475569]">Year</th>
                         <th className="px-5 py-3 text-left font-semibold text-[#475569]">Start Date</th>
                         <th className="px-5 py-3 text-left font-semibold text-[#475569]">End Date</th>
-                        <th className="px-5 py-3 text-center font-semibold text-[#475569]">Actions</th>
+                        {canManage && <th className="px-5 py-3 text-center font-semibold text-[#475569]">Actions</th>}
                       </tr>
                     </thead>
                     <tbody>
@@ -618,28 +632,30 @@ export default function AcademicStructurePage() {
                           <td className="px-5 py-4 text-[#475569]">{sem.year}</td>
                           <td className="px-5 py-4 text-[#475569]">{sem.startDate}</td>
                           <td className="px-5 py-4 text-[#475569]">{sem.endDate}</td>
-                          <td className="px-5 py-4">
-                            <div className="flex justify-center gap-2">
-                              <button
-                                onClick={() => {
-                                  setEditingSem(sem)
-                                  semForm.reset(sem)
-                                  setSemModalOpen(true)
-                                }}
-                                className="rounded p-1 text-[#475569] hover:bg-[#e2e8f0]"
-                                aria-label={`Edit ${sem.name}`}
-                              >
-                                <Edit2 size={16} />
-                              </button>
-                              <button
-                                onClick={() => setDeletingSem(sem)}
-                                className="rounded p-1 text-[#dc2626] hover:bg-[#fee2e2]"
-                                aria-label={`Delete ${sem.name}`}
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          </td>
+                          {canManage && (
+                            <td className="px-5 py-4">
+                              <div className="flex justify-center gap-2">
+                                <button
+                                  onClick={() => {
+                                    setEditingSem(sem)
+                                    semForm.reset(sem)
+                                    setSemModalOpen(true)
+                                  }}
+                                  className="rounded p-1 text-[#475569] hover:bg-[#e2e8f0]"
+                                  aria-label={`Edit ${sem.name}`}
+                                >
+                                  <Edit2 size={16} />
+                                </button>
+                                <button
+                                  onClick={() => setDeletingSem(sem)}
+                                  className="rounded p-1 text-[#dc2626] hover:bg-[#fee2e2]"
+                                  aria-label={`Delete ${sem.name}`}
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            </td>
+                          )}
                         </tr>
                       ))}
                     </tbody>
@@ -661,7 +677,7 @@ export default function AcademicStructurePage() {
                         <th className="px-5 py-3 text-left font-semibold text-[#475569]">Code</th>
                         <th className="px-5 py-3 text-left font-semibold text-[#475569]">Credits</th>
                         <th className="px-5 py-3 text-left font-semibold text-[#475569]">Semester</th>
-                        <th className="px-5 py-3 text-center font-semibold text-[#475569]">Actions</th>
+                        {canManage && <th className="px-5 py-3 text-center font-semibold text-[#475569]">Actions</th>}
                       </tr>
                     </thead>
                     <tbody>
@@ -671,28 +687,30 @@ export default function AcademicStructurePage() {
                           <td className="px-5 py-4 text-[#475569]">{subject.code}</td>
                           <td className="px-5 py-4 text-[#475569]">{subject.credits}</td>
                           <td className="px-5 py-4 text-[#475569]">{semesters.find((s) => s.id === subject.semesterId)?.name ?? 'Unknown'}</td>
-                          <td className="px-5 py-4">
-                            <div className="flex justify-center gap-2">
-                              <button
-                                onClick={() => {
-                                  setEditingSubj(subject)
-                                  subjForm.reset(subject)
-                                  setSubjModalOpen(true)
-                                }}
-                                className="rounded p-1 text-[#475569] hover:bg-[#e2e8f0]"
-                                aria-label={`Edit ${subject.name}`}
-                              >
-                                <Edit2 size={16} />
-                              </button>
-                              <button
-                                onClick={() => setDeletingSubj(subject)}
-                                className="rounded p-1 text-[#dc2626] hover:bg-[#fee2e2]"
-                                aria-label={`Delete ${subject.name}`}
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          </td>
+                          {canManage && (
+                            <td className="px-5 py-4">
+                              <div className="flex justify-center gap-2">
+                                <button
+                                  onClick={() => {
+                                    setEditingSubj(subject)
+                                    subjForm.reset(subject)
+                                    setSubjModalOpen(true)
+                                  }}
+                                  className="rounded p-1 text-[#475569] hover:bg-[#e2e8f0]"
+                                  aria-label={`Edit ${subject.name}`}
+                                >
+                                  <Edit2 size={16} />
+                                </button>
+                                <button
+                                  onClick={() => setDeletingSubj(subject)}
+                                  className="rounded p-1 text-[#dc2626] hover:bg-[#fee2e2]"
+                                  aria-label={`Delete ${subject.name}`}
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            </td>
+                          )}
                         </tr>
                       ))}
                     </tbody>

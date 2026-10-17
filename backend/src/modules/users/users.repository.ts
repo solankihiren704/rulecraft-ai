@@ -6,12 +6,14 @@ export const detailInclude = { department: true, student: { select: { id: true }
 export interface UserFilters {
   search?: string
   role?: Role
+  departmentId?: string
 }
 
 export function list(filters: UserFilters) {
   return prisma.user.findMany({
     where: {
       role: filters.role,
+      departmentId: filters.departmentId,
       OR: filters.search
         ? [
             { name: { contains: filters.search, mode: 'insensitive' as const } },

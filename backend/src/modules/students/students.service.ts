@@ -1,3 +1,5 @@
+import { prisma } from '@/config/prisma'
+import { hashPassword } from '@/utils/password'
 import { ApiError } from '@/middleware/errorHandler'
 import { assertInScope } from '@/middleware/authorize'
 import * as programsRepo from '@/modules/programs/programs.repository'
@@ -5,9 +7,17 @@ import { renderCsv, renderPdf, type ReportPayload } from '@/modules/reports/repo
 import type { Role } from '@/types'
 import * as repo from './students.repository'
 import { toStudent } from './students.mapper'
-import { buildImportTemplate, type ProgramReference, type RawImportRow } from './students.import'
-import { importStudentRowSchema } from './students.validators'
-import type { CreateStudentInput, ExportStudentsInput, ImportTemplateQuery, ListStudentsQuery, UpdateStudentInput } from './students.validators'
+import { buildCredentialsWorkbook, buildImportTemplate, type ProgramReference, type RawImportRow, type StudentCredentialRow } from './students.import'
+import { autoProvisionAcademicStructure, type AutoProvisionSummary } from './students.provisioning'
+import {
+  importStudentRowSchema,
+  type CreateStudentInput,
+  type ExportStudentsInput,
+  type ImportTemplateQuery,
+  type ListStudentsQuery,
+  type UpdateStudentInput,
+} from './students.validators'
+import { computeStudentResult, renderMarksheetPdf } from './students.result'
 
 interface CurrentUser {
   id: string
@@ -54,11 +64,6 @@ export async function getById(id: string, user: CurrentUser) {
   return toStudent(row)
 }
 
-async function assertProgramExists(programId: string) {
-  const program = await programsRepo.findById(programId)
-  if (!program) throw new ApiError(400, 'That program does not exist.', { programId: 'Invalid program.' })
-}
-
 async function assertEmailAvailable(email: string, excludeId?: string) {
   const existing = await repo.findByEmail(email)
   if (existing && existing.id !== excludeId) {
@@ -73,28 +78,95 @@ async function assertStudentIdAvailable(studentId: string, excludeId?: string) {
   }
 }
 
-export async function create(input: CreateStudentInput) {
-  await assertProgramExists(input.programId)
+export async function create(input: CreateStudentInput, user?: CurrentUser) {
+  const program = await programsRepo.findById(input.programId)
+  if (!program) throw new ApiError(400, 'That program does not exist.', { programId: 'Invalid program.' })
+
+  if (user && user.role === 'hod') {
+    if (program.departmentId !== user.departmentId) {
+      throw new ApiError(403, 'HODs can only add students to programs within their department.')
+    }
+  }
+
   await assertEmailAvailable(input.email)
   await assertStudentIdAvailable(input.studentId)
-  const row = await repo.create(input)
+
+  // Auto-provision a student user account if one doesn't exist
+  let loginUser = await prisma.user.findUnique({ where: { email: input.email.toLowerCase() } })
+  if (!loginUser) {
+    const passwordHash = await hashPassword('Demo@1234')
+    const initials = input.name.trim().split(/\s+/).map((part) => part[0]).slice(0, 2).join('').toUpperCase()
+    loginUser = await prisma.user.create({
+      data: {
+        name: input.name,
+        email: input.email.toLowerCase(),
+        passwordHash,
+        role: 'student',
+        departmentId: program.departmentId,
+        avatarInitials: initials,
+      },
+    })
+  }
+
+  const row = await repo.create({
+    ...input,
+    userId: loginUser.id,
+  })
   return toStudent(row)
 }
 
-export async function update(id: string, input: UpdateStudentInput) {
+export async function update(id: string, input: UpdateStudentInput, user?: CurrentUser) {
   const current = await repo.findById(id)
   if (!current) throw new ApiError(404, 'Student not found')
-  await assertProgramExists(input.programId)
+
+  if (user && user.role === 'hod') {
+    if (current.program.departmentId !== user.departmentId) {
+      throw new ApiError(403, 'HODs can only manage students within their department.')
+    }
+  }
+
+  const program = await programsRepo.findById(input.programId)
+  if (!program) throw new ApiError(400, 'That program does not exist.', { programId: 'Invalid program.' })
+
+  if (user && user.role === 'hod') {
+    if (program.departmentId !== user.departmentId) {
+      throw new ApiError(403, 'HODs can only assign students to programs within their department.')
+    }
+  }
+
   if (input.email.toLowerCase() !== current.email) await assertEmailAvailable(input.email, id)
   if (input.studentId !== current.studentId) await assertStudentIdAvailable(input.studentId, id)
+
+  // Also sync User name/email if linked
+  if (current.userId) {
+    await prisma.user.update({
+      where: { id: current.userId },
+      data: {
+        name: input.name,
+        email: input.email.toLowerCase(),
+      },
+    }).catch(() => null)
+  }
+
   const row = await repo.update(id, input)
   return toStudent(row)
 }
 
-export async function remove(id: string) {
+export async function remove(id: string, user?: CurrentUser) {
   const current = await repo.findById(id)
   if (!current) throw new ApiError(404, 'Student not found')
+
+  if (user && user.role === 'hod') {
+    if (current.program.departmentId !== user.departmentId) {
+      throw new ApiError(403, 'HODs can only remove students within their department.')
+    }
+  }
+
   await repo.remove(id)
+  // If student had a login User account, delete it as well
+  if (current.userId) {
+    await prisma.user.delete({ where: { id: current.userId } }).catch(() => null)
+  }
 }
 
 // --- Bulk import ------------------------------------------------------
@@ -120,10 +192,15 @@ export interface ImportSummary {
   totalRows: number
   createdCount: number
   failedCount: number
+  autoProvisioned?: AutoProvisionSummary
   results: ImportRowResult[]
+  createdStudentIds?: string[]
 }
 
-export async function importStudents(rawRows: RawImportRow[]): Promise<ImportSummary> {
+export async function importStudents(
+  rawRows: RawImportRow[],
+  options: { autoProvision?: boolean } = { autoProvision: true },
+): Promise<ImportSummary> {
   if (rawRows.length === 0) {
     throw new ApiError(400, 'The file has no student rows to import. Use the template and fill at least one row.')
   }
@@ -143,6 +220,19 @@ export async function importStudents(rawRows: RawImportRow[]): Promise<ImportSum
   const codes = [...new Set(validRows.map((r) => r.data.programCode))]
   const programs = codes.length ? await programsRepo.findManyByCodes(codes) : []
   const programByCode = new Map(programs.map((p) => [p.code, p]))
+
+  const unresolvedCodes = codes.filter((c) => !programByCode.has(c))
+  let autoProvisionSummary: AutoProvisionSummary | undefined
+
+  if (unresolvedCodes.length > 0 && options.autoProvision !== false) {
+    const { createdPrograms, summary } = await autoProvisionAcademicStructure(unresolvedCodes, validRows)
+    for (const [code, prog] of createdPrograms) {
+      programByCode.set(code, prog as never)
+    }
+    if (summary.departments.length > 0 || summary.programs.length > 0) {
+      autoProvisionSummary = summary
+    }
+  }
 
   const emails = [...new Set(validRows.map((r) => r.data.email.toLowerCase()))]
   const studentIds = [...new Set(validRows.map((r) => r.data.studentId))]
@@ -187,12 +277,32 @@ export async function importStudents(rawRows: RawImportRow[]): Promise<ImportSum
       year: data.year,
       status: data.status,
       gpa: data.gpa,
+      attendance: data.attendance ?? 85,
       enrollDate: new Date(),
     })
     results.push({ row: item.row, status: 'created', name: data.name, email })
   }
 
   if (toCreate.length > 0) {
+    const defaultPasswordHash = await hashPassword('Demo@1234')
+    for (const s of toCreate) {
+      let existingUser = await prisma.user.findUnique({ where: { email: s.email } })
+      if (!existingUser) {
+        const initials = s.name.trim().split(/\s+/).map((part) => part[0]).slice(0, 2).join('').toUpperCase()
+        const prog = Array.from(programByCode.values()).find((p) => p.id === s.programId)
+        existingUser = await prisma.user.create({
+          data: {
+            name: s.name,
+            email: s.email,
+            passwordHash: defaultPasswordHash,
+            role: 'student',
+            departmentId: prog?.departmentId ?? null,
+            avatarInitials: initials,
+          },
+        })
+      }
+      s.userId = existingUser.id
+    }
     await repo.createMany(toCreate)
   }
 
@@ -200,7 +310,9 @@ export async function importStudents(rawRows: RawImportRow[]): Promise<ImportSum
     totalRows: rawRows.length,
     createdCount: toCreate.length,
     failedCount: results.length - toCreate.length,
+    autoProvisioned: autoProvisionSummary,
     results,
+    createdStudentIds: toCreate.map((s) => s.studentId),
   }
 }
 
@@ -268,3 +380,100 @@ export async function exportSelected(input: ExportStudentsInput, user: ExportUse
     contentType: FORMAT_CONTENT_TYPE[input.format],
   }
 }
+
+export async function getResult(id: string, user: CurrentUser) {
+  const row = await repo.findResultStudentById(id)
+  if (!row) throw new ApiError(404, 'Student not found')
+  assertVisible(user, row)
+  return await computeStudentResult(row)
+}
+
+export async function buildResultPdf(id: string, user: CurrentUser) {
+  const result = await getResult(id, user)
+  const buffer = await renderMarksheetPdf(result)
+  return {
+    buffer,
+    filename: `marksheet-${result.student.studentId}.pdf`,
+    contentType: 'application/pdf',
+  }
+}
+
+export async function buildCredentialsFile(
+  filters: { departmentId?: string; programId?: string; studentIds?: string[] },
+  caller?: CurrentUser,
+): Promise<{ buffer: Buffer; filename: string }> {
+  let effectiveDepartmentId = filters.departmentId
+  if (caller?.role === 'hod' && caller.departmentId) {
+    effectiveDepartmentId = caller.departmentId
+  }
+
+  const students = await prisma.student.findMany({
+    where: {
+      ...(filters.studentIds && filters.studentIds.length > 0 ? { studentId: { in: filters.studentIds } } : {}),
+      ...(filters.programId ? { programId: filters.programId } : {}),
+      ...(effectiveDepartmentId ? { program: { departmentId: effectiveDepartmentId } } : {}),
+    },
+    include: {
+      program: {
+        include: { department: true },
+      },
+    },
+    orderBy: [{ program: { name: 'asc' } }, { year: 'asc' }, { studentId: 'asc' }],
+  })
+
+  const rows: StudentCredentialRow[] = students.map((s) => ({
+    studentId: s.studentId,
+    name: s.name,
+    email: s.email,
+    departmentName: s.program?.department?.name,
+    programName: s.program?.name,
+    year: s.year,
+    tempPassword: 'Demo@1234',
+  }))
+
+  const buffer = await buildCredentialsWorkbook(rows)
+  const datestamp = new Date().toISOString().slice(0, 10)
+  return {
+    buffer,
+    filename: `student-credentials-whatsapp-${datestamp}.xlsx`,
+  }
+}
+
+export async function resetPassword(
+  studentId: string,
+  caller: CurrentUser,
+): Promise<{ message: string; tempPassword: string }> {
+  const student = await repo.findById(studentId)
+  if (!student) throw new ApiError(404, 'Student not found')
+  assertVisible(caller, student)
+
+  const tempPassword = 'Demo@1234'
+  const passwordHash = await hashPassword(tempPassword)
+
+  if (student.userId) {
+    await prisma.user.update({
+      where: { id: student.userId },
+      data: { passwordHash, tokenVersion: { increment: 1 } },
+    })
+  } else {
+    const initials = student.name.trim().split(/\s+/).map((part) => part[0]).slice(0, 2).join('').toUpperCase()
+    const prog = await prisma.program.findUnique({ where: { id: student.programId } })
+    const user = await prisma.user.create({
+      data: {
+        name: student.name,
+        email: student.email,
+        passwordHash,
+        role: 'student',
+        departmentId: prog?.departmentId ?? null,
+        avatarInitials: initials,
+      },
+    })
+    await prisma.student.update({
+      where: { id: student.id },
+      data: { userId: user.id },
+    })
+  }
+
+  return { message: `Password for ${student.name} (${student.studentId}) was reset to Demo@1234.`, tempPassword }
+}
+

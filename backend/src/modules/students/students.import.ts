@@ -21,12 +21,28 @@ const HEADER_ALIASES: Record<string, string> = {
   emailaddress: 'email',
   studentid: 'studentId',
   id: 'studentId',
+  rollno: 'studentId',
+  rollnumber: 'studentId',
   program: 'programCode',
   programcode: 'programCode',
   code: 'programCode',
+  programname: 'programName',
+  branch: 'departmentName',
+  department: 'departmentName',
+  departmentname: 'departmentName',
+  dept: 'departmentName',
+  deptname: 'departmentName',
+  departmentcode: 'departmentCode',
+  deptcode: 'departmentCode',
   year: 'year',
   status: 'status',
   gpa: 'gpa',
+  cgpa: 'gpa',
+  attendance: 'attendance',
+  attendancepercent: 'attendance',
+  attendancepercentage: 'attendance',
+  att: 'attendance',
+  presence: 'attendance',
 }
 
 function normalizeHeader(raw: string): string {
@@ -95,9 +111,12 @@ export async function buildImportTemplate(programs: ProgramReference[]): Promise
     { header: 'Email', key: 'email', width: 30 },
     { header: 'Student ID', key: 'studentId', width: 18 },
     { header: 'Program Code', key: 'programCode', width: 16 },
+    { header: 'Department (Optional)', key: 'departmentName', width: 26 },
+    { header: 'Program Name (Optional)', key: 'programName', width: 30 },
     { header: 'Year', key: 'year', width: 8 },
     { header: 'Status', key: 'status', width: 14 },
     { header: 'GPA', key: 'gpa', width: 8 },
+    { header: 'Attendance % (Optional)', key: 'attendance', width: 22 },
   ]
   const headerRow = sheet.getRow(1)
   headerRow.eachCell((cell) => {
@@ -105,8 +124,19 @@ export async function buildImportTemplate(programs: ProgramReference[]): Promise
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F172A' } }
   })
 
-  const exampleCode = programs[0]?.code ?? 'CODE'
-  sheet.addRow({ name: 'Jane Doe', email: 'jane.doe@example.edu', studentId: 'STU-2026-001', programCode: exampleCode, year: 1, status: 'active', gpa: 8.5 })
+  const exampleCode = programs[0]?.code ?? 'BTME'
+  sheet.addRow({
+    name: 'Rahul Sharma',
+    email: 'rahul.sharma@university.edu',
+    studentId: 'STU-2026-001',
+    programCode: exampleCode,
+    departmentName: 'Mechanical Engineering',
+    programName: 'B.Tech Mechanical Engineering',
+    year: 1,
+    status: 'active',
+    gpa: 8.5,
+    attendance: 88,
+  })
   sheet.getRow(2).eachCell((cell) => {
     cell.font = { italic: true, color: { argb: 'FF94A3B8' } }
   })
@@ -122,6 +152,63 @@ export async function buildImportTemplate(programs: ProgramReference[]): Promise
   if (programs.length === 0) {
     ref.addRow({ code: '—', name: 'No programs match this filter', departmentName: '' })
   }
+
+  const buffer = await workbook.xlsx.writeBuffer()
+  return Buffer.from(buffer)
+}
+
+export interface StudentCredentialRow {
+  studentId: string
+  name: string
+  email: string
+  departmentName?: string
+  programName?: string
+  year: number
+  tempPassword?: string
+}
+
+export async function buildCredentialsWorkbook(
+  students: StudentCredentialRow[],
+  portalUrl = 'http://localhost:5173',
+): Promise<Buffer> {
+  const workbook = new ExcelJS.Workbook()
+  workbook.creator = 'RuleCraft AI'
+  workbook.created = new Date()
+
+  const sheet = workbook.addWorksheet('Student Login Credentials')
+  sheet.columns = [
+    { header: 'Student ID / Roll No', key: 'studentId', width: 22 },
+    { header: 'Full Name', key: 'name', width: 26 },
+    { header: 'Department', key: 'departmentName', width: 26 },
+    { header: 'Program', key: 'programName', width: 28 },
+    { header: 'Year', key: 'year', width: 10 },
+    { header: 'Login Email', key: 'email', width: 30 },
+    { header: 'Default Password', key: 'password', width: 18 },
+    { header: 'Portal Login URL', key: 'portalUrl', width: 28 },
+    { header: 'Login Note', key: 'note', width: 40 },
+  ]
+
+  const headerRow = sheet.getRow(1)
+  headerRow.height = 24
+  headerRow.eachCell((cell) => {
+    cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 }
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } }
+    cell.alignment = { vertical: 'middle', horizontal: 'left' }
+  })
+
+  students.forEach((s) => {
+    sheet.addRow({
+      studentId: s.studentId,
+      name: s.name,
+      departmentName: s.departmentName || '—',
+      programName: s.programName || '—',
+      year: s.year,
+      email: s.email,
+      password: s.tempPassword || 'Demo@1234',
+      portalUrl,
+      note: 'Log in with Roll No or Email; change pass on 1st login.',
+    })
+  })
 
   const buffer = await workbook.xlsx.writeBuffer()
   return Buffer.from(buffer)

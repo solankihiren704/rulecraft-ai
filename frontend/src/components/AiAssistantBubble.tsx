@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { AlertTriangle, MessageCircle, Send, Sparkles, X } from 'lucide-react'
+import { MessageCircle, Send, Sparkles, X } from 'lucide-react'
 import { nextId } from '@/services/mockData'
 import { useAiAssistant } from '@/contexts/AiAssistantContext'
+import { askAi } from '@/api/ai'
 
 const DEFAULT_PROMPTS = [
   'Draft a rule requiring 75% attendance to sit for exams.',
@@ -59,26 +60,6 @@ function promptsForRoute(pathname: string): string[] {
   return ROUTE_PROMPTS.find((r) => pathname.startsWith(r.prefix))?.prompts ?? DEFAULT_PROMPTS
 }
 
-function mockAiReply(prompt: string): string {
-  const lower = prompt.toLowerCase()
-  if (lower.includes('draft') || lower.includes('rule')) {
-    return 'Here is a draft rule: IF attendancePercent >= 75 THEN outcome = "Eligible to sit for semester exams". Refine it in the Rule Engine before activating — I never activate rules myself.'
-  }
-  if (lower.includes('explain') || lower.includes('why')) {
-    return 'Based on the rule engine result: the student did not meet the backlog limit condition (activeBacklogs <= 4). This is a deterministic outcome from the published regulation, not an AI judgment.'
-  }
-  if (lower.includes('summar')) {
-    return 'Summary: (1) Minimum 75% attendance required for exam eligibility. (2) Passing mark is 40% per subject, with up to 8 grace marks. (3) Promotion requires CGPA >= 5.0 and no more than 4 active backlogs.'
-  }
-  if (lower.includes('conflict')) {
-    return 'I checked the active rule set: no direct conflicts detected between attendance and grace-mark rules. I flag potential overlaps for human review; I never resolve them automatically.'
-  }
-  return "I can help draft rules, explain eligibility outcomes, summarize regulations, or flag likely conflicts. Try a suggestion below, or ask in plain English."
-}
-
-// No Gemini backend is wired up yet (GEMINI_API_KEY unconfigured, no /api/ai
-// module) — this is a preview of the intended experience, not a live
-// assistant. Replies are scripted so it's never mistaken for a real connection.
 export default function AiAssistantBubble() {
   const location = useLocation()
   const { open, setOpen, messages, addMessage } = useAiAssistant()
@@ -104,16 +85,25 @@ export default function AiAssistantBubble() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [open])
 
-  function send(prompt?: string) {
+  async function send(prompt?: string) {
     const text = (prompt ?? input).trim()
     if (!text || isThinking) return
     addMessage({ id: nextId('ai'), role: 'user', content: text, at: new Date().toISOString() })
     setInput('')
     setIsThinking(true)
-    window.setTimeout(() => {
-      addMessage({ id: nextId('ai'), role: 'assistant', content: mockAiReply(text), at: new Date().toISOString() })
+    try {
+      const res = await askAi({ message: text, route: location.pathname })
+      addMessage({ id: nextId('ai'), role: 'assistant', content: res.reply, at: new Date().toISOString() })
+    } catch {
+      addMessage({
+        id: nextId('ai'),
+        role: 'assistant',
+        content: 'I had trouble connecting to the university regulation database. Please ensure you are logged in and try again.',
+        at: new Date().toISOString(),
+      })
+    } finally {
       setIsThinking(false)
-    }, 900)
+    }
   }
 
   return (
@@ -132,7 +122,7 @@ export default function AiAssistantBubble() {
               </div>
               <div>
                 <p className="text-xs font-bold leading-none">RuleCraft AI</p>
-                <p className="mt-1 text-[10px] leading-none text-[#94a3b8]">Preview · no live connection</p>
+                <p className="mt-1 text-[10px] leading-none text-[#86efac]">● Live Academic Policy Advisor</p>
               </div>
             </div>
             <button onClick={() => setOpen(false)} aria-label="Close AI assistant" className="text-[#94a3b8] hover:text-white">
@@ -140,9 +130,9 @@ export default function AiAssistantBubble() {
             </button>
           </div>
 
-          <div role="status" className="flex items-start gap-2 border-b border-[#e2e8f0] bg-[#eff6ff] px-3 py-2 text-[11px] font-semibold text-[#1e40af]">
-            <AlertTriangle size={12} className="mt-0.5 shrink-0" />
-            Scripted preview replies — the deterministic rule engine is always the real authority.
+          <div role="status" className="flex items-start gap-2 border-b border-[#e2e8f0] bg-[#f0fdf4] px-3 py-2 text-[11px] font-semibold text-[#15803d]">
+            <Sparkles size={12} className="mt-0.5 shrink-0 text-[#16a34a]" />
+            Grounded in active Northbridge University regulations & examination rules.
           </div>
 
           <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-4">

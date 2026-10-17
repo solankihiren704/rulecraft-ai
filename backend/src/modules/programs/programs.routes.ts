@@ -7,12 +7,11 @@ import * as controller from './programs.controller'
 import { createProgramSchema, listProgramsQuerySchema, updateProgramSchema } from './programs.validators'
 
 export const programsRouter = Router()
-programsRouter.use(authenticate)
 
-const manage = authorize('super_admin', 'registrar')
+const manage = [authenticate, authorize('super_admin', 'registrar')]
 
 programsRouter.get('/', validate({ query: listProgramsQuerySchema }), controller.list)
 programsRouter.get('/:id', validate({ params: idParamSchema }), controller.getById)
-programsRouter.post('/', manage, validate({ body: createProgramSchema }), controller.create)
-programsRouter.patch('/:id', manage, validate({ params: idParamSchema, body: updateProgramSchema }), controller.update)
-programsRouter.delete('/:id', manage, validate({ params: idParamSchema }), controller.remove)
+programsRouter.post('/', ...manage, validate({ body: createProgramSchema }), controller.create)
+programsRouter.patch('/:id', ...manage, validate({ params: idParamSchema, body: updateProgramSchema }), controller.update)
+programsRouter.delete('/:id', ...manage, validate({ params: idParamSchema }), controller.remove)

@@ -59,7 +59,7 @@ export function findByStudentId(studentId: string) {
   return prisma.student.findUnique({ where: { studentId } })
 }
 
-export function create(data: CreateStudentInput) {
+export function create(data: CreateStudentInput & { userId?: string }) {
   return prisma.student.create({
     data: {
       name: data.name,
@@ -69,7 +69,9 @@ export function create(data: CreateStudentInput) {
       year: data.year,
       status: data.status,
       gpa: data.gpa,
+      attendance: data.attendance ?? 85,
       enrollDate: new Date(),
+      userId: data.userId,
     },
   })
 }
@@ -85,6 +87,7 @@ export function update(id: string, data: UpdateStudentInput) {
       year: data.year,
       status: data.status,
       gpa: data.gpa,
+      attendance: data.attendance,
     },
   })
 }
@@ -108,9 +111,36 @@ export interface ImportRow {
   year: number
   status: StudentStatus
   gpa: number
+  attendance?: number
   enrollDate: Date
+  userId?: string
 }
 
 export function createMany(rows: ImportRow[]) {
   return prisma.student.createMany({ data: rows })
+}
+
+export function findResultStudentById(id: string) {
+  return prisma.student.findFirst({
+    where: {
+      OR: [{ id }, { studentId: id }, { userId: id }],
+    },
+    include: {
+      program: {
+        include: {
+          department: true,
+          semesters: {
+            include: {
+              subjects: true,
+            },
+            orderBy: { year: 'asc' },
+          },
+          regulations: {
+            where: { status: 'published' },
+            include: { rules: { where: { active: true } } },
+          },
+        },
+      },
+    },
+  })
 }

@@ -21,6 +21,8 @@ backend/prisma/*.db
 # Local dev database (embedded-postgres) and generated report files
 backend/.local-pgdata/
 backend/storage/
+backend/data/
+
 
 # Logs
 *.log

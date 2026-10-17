@@ -33,17 +33,20 @@ export async function getById(req: Request, res: Response) {
 }
 
 export async function create(req: Request, res: Response) {
-  const data = await service.create(req.body)
+  const user = requireUser(req)
+  const data = await service.create(req.body, user)
   return created(res, data)
 }
 
 export async function update(req: Request, res: Response) {
-  const data = await service.update(req.params.id as string, req.body)
+  const user = requireUser(req)
+  const data = await service.update(req.params.id as string, req.body, user)
   return ok(res, data)
 }
 
 export async function remove(req: Request, res: Response) {
-  await service.remove(req.params.id as string)
+  const user = requireUser(req)
+  await service.remove(req.params.id as string, user)
   return noContent(res)
 }
 
@@ -58,7 +61,8 @@ export async function importTemplate(req: Request, res: Response) {
 export async function importStudents(req: Request, res: Response) {
   if (!req.file) throw new ApiError(400, 'Attach a .xlsx or .csv file to import.')
   const rows = await parseImportRows(req.file.buffer, req.file.originalname)
-  const summary = await service.importStudents(rows)
+  const autoProvision = req.body?.autoProvision !== 'false'
+  const summary = await service.importStudents(rows, { autoProvision })
   return ok(res, summary)
 }
 
@@ -70,3 +74,32 @@ export async function exportSelected(req: Request, res: Response) {
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
   return res.send(buffer)
 }
+
+export async function getResult(req: Request, res: Response) {
+  const user = requireUser(req)
+  const data = await service.getResult(req.params.id as string, user)
+  return ok(res, data)
+}
+
+export async function downloadResultPdf(req: Request, res: Response) {
+  const user = requireUser(req)
+  const { buffer, filename, contentType } = await service.buildResultPdf(req.params.id as string, user)
+  res.setHeader('Content-Type', contentType)
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+  return res.send(buffer)
+}
+
+export async function exportCredentials(req: Request, res: Response) {
+  const user = requireUser(req)
+  const { buffer, filename } = await service.buildCredentialsFile(req.body ?? {}, user)
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+  return res.send(buffer)
+}
+
+export async function resetPassword(req: Request, res: Response) {
+  const user = requireUser(req)
+  const result = await service.resetPassword(req.params.id as string, user)
+  return ok(res, result)
+}
+

@@ -11,13 +11,13 @@ function requireUser(req: Request) {
 
 export async function list(req: Request, res: Response) {
   const user = requireUser(req)
-  const data = await service.list(req.query as never, user.role)
+  const data = await service.list(req.query as never, user)
   return ok(res, data)
 }
 
 export async function getById(req: Request, res: Response) {
   const user = requireUser(req)
-  const data = await service.getById(req.params.id as string, user.role)
+  const data = await service.getById(req.params.id as string, user)
   return ok(res, data)
 }
 
@@ -45,7 +45,7 @@ export async function submit(req: Request, res: Response) {
 
 export async function review(req: Request, res: Response) {
   const user = requireUser(req)
-  const data = await service.review(req.params.id as string, user.id, req.body?.note)
+  const data = await service.review(req.params.id as string, user, req.body?.note)
   return ok(res, data)
 }
 
@@ -57,7 +57,7 @@ export async function approve(req: Request, res: Response) {
 
 export async function reject(req: Request, res: Response) {
   const user = requireUser(req)
-  const data = await service.reject(req.params.id as string, user.id, req.body.note)
+  const data = await service.reject(req.params.id as string, user, req.body.note)
   return ok(res, data)
 }
 

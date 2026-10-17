@@ -38,18 +38,35 @@ async function assertEmailAvailable(email: string, excludeId?: string) {
   }
 }
 
-export async function list(query: ListUsersQuery) {
-  const rows = await repo.list(query)
+interface CurrentCaller {
+  id: string
+  role: import('@/types').Role
+  departmentId: string | null
+}
+
+export async function list(query: ListUsersQuery, caller?: CurrentCaller) {
+  const departmentId = caller?.role === 'hod' ? (caller.departmentId ?? undefined) : undefined
+  const rows = await repo.list({ ...query, departmentId })
   return rows.map(toAuthUser)
 }
 
-export async function getById(id: string) {
+export async function getById(id: string, caller?: CurrentCaller) {
   const row = await repo.findById(id)
   if (!row) throw new ApiError(404, 'User not found')
+  if (caller?.role === 'hod' && row.departmentId !== caller.departmentId) {
+    throw new ApiError(403, 'You do not have access to users outside your department.')
+  }
   return toAuthUser(row)
 }
 
-export async function create(input: CreateUserInput) {
+export async function create(input: CreateUserInput, caller?: CurrentCaller) {
+  if (caller?.role === 'hod') {
+    if (input.role !== 'faculty') {
+      throw new ApiError(403, 'HODs can only add Faculty members.')
+    }
+    input.departmentId = caller.departmentId ?? undefined
+  }
+
   if (input.departmentId) await assertDepartmentExists(input.departmentId)
   await assertEmailAvailable(input.email)
 
@@ -64,15 +81,21 @@ export async function create(input: CreateUserInput) {
     passwordHash,
   })
 
-  // There's no email/notification system yet (see AI/Reports modules —
-  // also unbuilt), so the only way to hand the admin this one-time
-  // credential is to return it in the create response itself.
   return { user: toAuthUser(row), tempPassword }
 }
 
-export async function update(id: string, input: UpdateUserInput) {
+export async function update(id: string, input: UpdateUserInput, caller?: CurrentCaller) {
   const current = await repo.findById(id)
   if (!current) throw new ApiError(404, 'User not found')
+
+  if (caller?.role === 'hod') {
+    if (current.departmentId !== caller.departmentId || current.role !== 'faculty') {
+      throw new ApiError(403, 'HODs can only edit Faculty members within their department.')
+    }
+    input.role = 'faculty'
+    input.departmentId = caller.departmentId ?? undefined
+  }
+
   if (input.departmentId) await assertDepartmentExists(input.departmentId)
   if (input.email.toLowerCase() !== current.email) await assertEmailAvailable(input.email, id)
 
@@ -86,12 +109,18 @@ export async function update(id: string, input: UpdateUserInput) {
   return toAuthUser(row)
 }
 
-export async function remove(id: string, currentUserId: string) {
+export async function remove(id: string, currentUserId: string, caller?: CurrentCaller) {
   if (id === currentUserId) {
     throw new ApiError(409, "You can't remove your own account.")
   }
   const current = await repo.findById(id)
   if (!current) throw new ApiError(404, 'User not found')
+
+  if (caller?.role === 'hod') {
+    if (current.departmentId !== caller.departmentId || current.role !== 'faculty') {
+      throw new ApiError(403, 'HODs can only remove Faculty members within their department.')
+    }
+  }
 
   try {
     await repo.remove(id)

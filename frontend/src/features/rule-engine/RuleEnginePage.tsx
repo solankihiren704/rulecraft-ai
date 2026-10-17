@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Controller, useFieldArray, useForm } from 'react-hook-form'
-import type { Control, UseFormRegister } from 'react-hook-form'
+import type { Control, UseFormRegister, UseFormSetValue } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { AlertCircle, ArrowRight, GitBranch, Plus, Search, Edit2, Trash2, X, Loader2 } from 'lucide-react'
+import { AlertCircle, ArrowRight, GitBranch, Plus, Search, Edit2, Trash2, X, Loader2, Sparkles } from 'lucide-react'
 import { useToast } from '@/contexts/ToastContext'
 import { useAuth } from '@/contexts/AuthContext'
 import Modal from '@/components/ui/Modal'
@@ -17,6 +17,19 @@ import { ApiRequestError } from '@/api/client'
 import { operatorSymbols } from '@/utils/conditionTree'
 import type { RegulationWithRuleCount } from '@/api/regulations'
 import type { ConditionGroup, ConditionNode, Rule, RuleType } from '@/types'
+
+export const COMMON_RULE_FIELDS = [
+  { id: 'grade', label: 'grade', desc: 'Letter Grade (A, B, C, F)', defaultOp: 'eq', defaultVal: 'A', example: 'grade = A' },
+  { id: 'marks', label: 'marks', desc: 'Marks / Score (0-100)', defaultOp: 'gte', defaultVal: '40', example: 'marks >= 40' },
+  { id: 'subjectMarks', label: 'subjectMarks', desc: 'Subject Marks (0-100)', defaultOp: 'gte', defaultVal: '40', example: 'subjectMarks >= 40' },
+  { id: 'cgpa', label: 'cgpa', desc: 'CGPA (0.0 - 10.0)', defaultOp: 'gte', defaultVal: '5.0', example: 'cgpa >= 5.0' },
+  { id: 'gpa', label: 'gpa', desc: 'GPA (0.0 - 4.0 / 10.0)', defaultOp: 'gte', defaultVal: '3.0', example: 'gpa >= 3.0' },
+  { id: 'attendancePercent', label: 'attendancePercent', desc: 'Attendance % (0-100)', defaultOp: 'gte', defaultVal: '75', example: 'attendancePercent >= 75' },
+  { id: 'activeBacklogs', label: 'activeBacklogs', desc: 'Active Backlogs count', defaultOp: 'lte', defaultVal: '2', example: 'activeBacklogs <= 2' },
+  { id: 'credits', label: 'credits', desc: 'Credits Earned', defaultOp: 'gte', defaultVal: '20', example: 'credits >= 20' },
+  { id: 'shortfallMarks', label: 'shortfallMarks', desc: 'Grace Marks Shortfall', defaultOp: 'lte', defaultVal: '5', example: 'shortfallMarks <= 5' },
+  { id: 'medicalCertificate', label: 'medicalCertificate', desc: 'Medical Cert (true/false)', defaultOp: 'eq', defaultVal: 'true', example: 'medicalCertificate = true' },
+] as const
 
 const ruleTypes: { id: RuleType; label: string }[] = [
   { id: 'attendance', label: 'Attendance' },
@@ -81,6 +94,7 @@ const emptyCondition = { type: 'condition' as const, field: '', operator: 'gte' 
 interface ConditionGroupEditorProps {
   control: Control<FormValues>
   register: UseFormRegister<FormValues>
+  setValue?: UseFormSetValue<FormValues>
   path: string
   depth: number
 }
@@ -89,11 +103,19 @@ interface ConditionGroupEditorProps {
 // express an arbitrarily-deep dynamic path, so this component (only this
 // component) works with loosely-typed paths and casts at the register/
 // useFieldArray boundary — everywhere else in the form stays fully typed.
-function ConditionGroupEditor({ control, register, path, depth }: ConditionGroupEditorProps) {
+function ConditionGroupEditor({ control, register, setValue, path, depth }: ConditionGroupEditorProps) {
   const { fields, append, remove } = useFieldArray({ control, name: `${path}.children` as 'conditionTree.children' })
 
   return (
     <div className={depth > 0 ? 'ml-2 border-l-2 border-[#e2e8f0] pl-4' : ''}>
+      <datalist id="rule-common-fields">
+        {COMMON_RULE_FIELDS.map((f) => (
+          <option key={f.id} value={f.id}>
+            {f.desc} ({f.example})
+          </option>
+        ))}
+      </datalist>
+
       <div className="mb-2 flex items-center gap-2">
         <select
           {...register(`${path}.operator` as 'conditionTree.operator')}
@@ -104,46 +126,72 @@ function ConditionGroupEditor({ control, register, path, depth }: ConditionGroup
         </select>
         <span className="text-[10px] text-[#94a3b8]">of the following must match</span>
       </div>
-      <div className="space-y-2">
+      <div className="space-y-3">
         {fields.map((field, index) => {
           const childPath = `${path}.children.${index}`
           const isGroup = (field as unknown as ConditionNode).type === 'group'
           return (
-            <div key={field.id} className="flex items-start gap-2">
-              {isGroup ? (
-                <div className="flex-1 rounded border border-dashed border-[#cbd5e1] bg-[#f8fafc] p-3">
-                  <ConditionGroupEditor control={control} register={register} path={childPath} depth={depth + 1} />
+            <div key={field.id} className="space-y-1.5">
+              <div className="flex items-start gap-2">
+                {isGroup ? (
+                  <div className="flex-1 rounded border border-dashed border-[#cbd5e1] bg-[#f8fafc] p-3">
+                    <ConditionGroupEditor control={control} register={register} setValue={setValue} path={childPath} depth={depth + 1} />
+                  </div>
+                ) : (
+                  <>
+                    <input
+                      list="rule-common-fields"
+                      placeholder="field (e.g. grade, marks, cgpa)"
+                      className={`${inputClassName} flex-[1.3]`}
+                      {...register(`${childPath}.field` as 'conditionTree.children.0.field')}
+                    />
+                    <select className={`${inputClassName} flex-1`} {...register(`${childPath}.operator` as 'conditionTree.children.0.operator')}>
+                      {operators.map((op) => (
+                        <option key={op.id} value={op.id}>
+                          {op.label}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      placeholder="value (e.g. A, 40, 7.5)"
+                      className={`${inputClassName} flex-1`}
+                      {...register(`${childPath}.value` as 'conditionTree.children.0.value')}
+                    />
+                  </>
+                )}
+                <button
+                  type="button"
+                  onClick={() => fields.length > 1 && remove(index)}
+                  disabled={fields.length === 1}
+                  className="mt-2.5 shrink-0 text-[#94a3b8] hover:text-[#dc2626] disabled:opacity-30"
+                  aria-label="Remove"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {!isGroup && (
+                <div className="flex flex-wrap items-center gap-1 pl-0.5 text-[11px] text-[#64748b]">
+                  <span className="text-[10px] uppercase tracking-wider text-[#94a3b8]">Quick set:</span>
+                  {COMMON_RULE_FIELDS.slice(0, 5).map((cf) => (
+                    <button
+                      key={cf.id}
+                      type="button"
+                      onClick={() => {
+                        if (setValue) {
+                          setValue(`${childPath}.field` as 'conditionTree.children.0.field', cf.id, { shouldValidate: true })
+                          setValue(`${childPath}.operator` as 'conditionTree.children.0.operator', cf.defaultOp as 'gte', { shouldValidate: true })
+                          setValue(`${childPath}.value` as 'conditionTree.children.0.value', cf.defaultVal, { shouldValidate: true })
+                        }
+                      }}
+                      className="rounded bg-[#f1f5f9] px-1.5 py-0.5 text-[10px] font-medium text-[#475569] transition hover:bg-[#e0e7ff] hover:text-[#4338ca]"
+                      title={cf.desc}
+                    >
+                      {cf.label}
+                    </button>
+                  ))}
                 </div>
-              ) : (
-                <>
-                  <input
-                    placeholder="field, e.g. attendancePercent"
-                    className={`${inputClassName} flex-[1.3]`}
-                    {...register(`${childPath}.field` as 'conditionTree.children.0.field')}
-                  />
-                  <select className={`${inputClassName} flex-1`} {...register(`${childPath}.operator` as 'conditionTree.children.0.operator')}>
-                    {operators.map((op) => (
-                      <option key={op.id} value={op.id}>
-                        {op.label}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    placeholder="value"
-                    className={`${inputClassName} flex-1`}
-                    {...register(`${childPath}.value` as 'conditionTree.children.0.value')}
-                  />
-                </>
               )}
-              <button
-                type="button"
-                onClick={() => fields.length > 1 && remove(index)}
-                disabled={fields.length === 1}
-                className="mt-2.5 shrink-0 text-[#94a3b8] hover:text-[#dc2626] disabled:opacity-30"
-                aria-label="Remove"
-              >
-                <X size={16} />
-              </button>
             </div>
           )
         })}
@@ -210,6 +258,7 @@ export default function RuleEnginePage() {
     control,
     handleSubmit,
     reset,
+    setValue,
     setError,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({ resolver: zodResolver(schema) })
@@ -251,10 +300,10 @@ export default function RuleEnginePage() {
     reset({
       name: '',
       regulationId: regulations[0]?.id ?? '',
-      type: 'attendance',
-      outcome: '',
+      type: 'grading',
+      outcome: 'Grade A awarded',
       active: true,
-      conditionTree: { type: 'group', operator: 'AND', children: [{ type: 'condition', field: 'attendancePercent', operator: 'gte', value: '75' }] },
+      conditionTree: { type: 'group', operator: 'AND', children: [{ type: 'condition', field: 'grade', operator: 'eq', value: 'A' }] },
     })
     setModalOpen(true)
   }
@@ -457,7 +506,47 @@ export default function RuleEnginePage() {
               </select>
             </FormField>
             <FormField label="Rule type" htmlFor="rule-type" error={errors.type?.message} required>
-              <select id="rule-type" className={inputClassName} {...register('type')}>
+              <select
+                id="rule-type"
+                className={inputClassName}
+                {...register('type', {
+                  onChange: (e) => {
+                    if (editingRule) return
+                    const t = e.target.value as RuleType
+                    if (t === 'grading') {
+                      setValue('conditionTree.children.0.field' as 'conditionTree.children.0.field', 'marks')
+                      setValue('conditionTree.children.0.operator' as 'conditionTree.children.0.operator', 'gte')
+                      setValue('conditionTree.children.0.value' as 'conditionTree.children.0.value', '80')
+                      setValue('outcome', 'Grade A awarded')
+                    } else if (t === 'passing') {
+                      setValue('conditionTree.children.0.field' as 'conditionTree.children.0.field', 'marks')
+                      setValue('conditionTree.children.0.operator' as 'conditionTree.children.0.operator', 'gte')
+                      setValue('conditionTree.children.0.value' as 'conditionTree.children.0.value', '40')
+                      setValue('outcome', 'Subject passed')
+                    } else if (t === 'promotion') {
+                      setValue('conditionTree.children.0.field' as 'conditionTree.children.0.field', 'cgpa')
+                      setValue('conditionTree.children.0.operator' as 'conditionTree.children.0.operator', 'gte')
+                      setValue('conditionTree.children.0.value' as 'conditionTree.children.0.value', '5.0')
+                      setValue('outcome', 'Eligible for promotion to next year')
+                    } else if (t === 'backlog') {
+                      setValue('conditionTree.children.0.field' as 'conditionTree.children.0.field', 'activeBacklogs')
+                      setValue('conditionTree.children.0.operator' as 'conditionTree.children.0.operator', 'lte')
+                      setValue('conditionTree.children.0.value' as 'conditionTree.children.0.value', '2')
+                      setValue('outcome', 'Promoted with ATKT')
+                    } else if (t === 'grace_marks') {
+                      setValue('conditionTree.children.0.field' as 'conditionTree.children.0.field', 'shortfallMarks')
+                      setValue('conditionTree.children.0.operator' as 'conditionTree.children.0.operator', 'lte')
+                      setValue('conditionTree.children.0.value' as 'conditionTree.children.0.value', '5')
+                      setValue('outcome', 'Up to 5 grace marks applied')
+                    } else if (t === 'attendance') {
+                      setValue('conditionTree.children.0.field' as 'conditionTree.children.0.field', 'attendancePercent')
+                      setValue('conditionTree.children.0.operator' as 'conditionTree.children.0.operator', 'gte')
+                      setValue('conditionTree.children.0.value' as 'conditionTree.children.0.value', '75')
+                      setValue('outcome', 'Eligible to sit for semester exams')
+                    }
+                  },
+                })}
+              >
                 {ruleTypes.map((t) => (
                   <option key={t.id} value={t.id}>
                     {t.label}
@@ -469,8 +558,15 @@ export default function RuleEnginePage() {
 
           <p className="mb-2 text-xs font-semibold text-[#475569]">Conditions</p>
           {errors.conditionTree && <p className="mb-2 text-[11px] font-semibold text-[#dc2626]">Fix the highlighted conditions below.</p>}
-          <div className="mb-4 rounded border border-[#e2e8f0] bg-white p-3">
-            <ConditionGroupEditor control={control} register={register} path="conditionTree" depth={0} />
+          <div className="mb-3 rounded border border-[#e2e8f0] bg-white p-3">
+            <ConditionGroupEditor control={control} register={register} setValue={setValue} path="conditionTree" depth={0} />
+          </div>
+
+          <div className="mb-4 flex items-start gap-2 rounded-lg border border-[#e2e8f0] bg-[#f8fafc] p-2.5 text-xs text-[#64748b]">
+            <Sparkles size={14} className="mt-0.5 shrink-0 text-[#6366f1]" />
+            <span>
+              <strong className="text-[#334155]">Any criteria supported:</strong> You can check score/marks (e.g. <code className="rounded bg-[#f1f5f9] px-1 font-semibold text-[#4f46e5]">marks &gt;= 75</code>), letter grades (e.g. <code className="rounded bg-[#f1f5f9] px-1 font-semibold text-[#4f46e5]">grade = A</code>), CGPA/GPA (e.g. <code className="rounded bg-[#f1f5f9] px-1 font-semibold text-[#4f46e5]">cgpa &gt;= 6.5</code>), attendance %, backlogs, or any custom field.
+            </span>
           </div>
 
           <FormField label="Outcome" htmlFor="rule-outcome" error={errors.outcome?.message} hint="What happens when all conditions above are satisfied." required>

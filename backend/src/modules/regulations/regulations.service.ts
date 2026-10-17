@@ -18,19 +18,38 @@ function visibleStatusesFor(role: Role): RegulationStatus[] | undefined {
   return STAFF_WITH_FULL_VISIBILITY.includes(role) ? undefined : ['published']
 }
 
-export async function list(query: ListRegulationsQuery, role: Role) {
-  const rows = await repo.list({ ...query, visibleStatuses: visibleStatusesFor(role) })
+export async function list(
+  query: ListRegulationsQuery,
+  user: { role: Role; departmentId: string | null }
+) {
+  const departmentId =
+    user.role === 'hod' || user.role === 'faculty' ? (user.departmentId ?? undefined) : undefined
+  const rows = await repo.list({
+    ...query,
+    departmentId,
+    visibleStatuses: visibleStatusesFor(user.role),
+  })
   return rows.map(toRegulation)
 }
 
-export async function getById(id: string, role: Role) {
+export async function getById(
+  id: string,
+  user: { role: Role; departmentId: string | null }
+) {
   const row = await repo.findById(id)
   if (!row) throw new ApiError(404, 'Regulation not found')
 
-  const visible = visibleStatusesFor(role)
+  const visible = visibleStatusesFor(user.role)
   if (visible && !visible.includes(row.status)) {
     throw new ApiError(404, 'Regulation not found')
   }
+
+  if (user.role === 'hod' || user.role === 'faculty') {
+    if (user.departmentId && row.program?.departmentId !== user.departmentId) {
+      throw new ApiError(403, 'Access denied: This regulation belongs to another academic department.')
+    }
+  }
+
   return toRegulation(row)
 }
 
@@ -83,12 +102,20 @@ export async function submit(id: string, byId: string) {
   return toRegulation((await repo.findById(id))!)
 }
 
-export async function review(id: string, byId: string, note: string | undefined) {
+export async function review(
+  id: string,
+  user: { id: string; role: Role; departmentId: string | null },
+  note: string | undefined
+) {
   const row = await repo.findById(id)
   if (!row) throw new ApiError(404, 'Regulation not found')
   if (row.status !== 'review') throw new ApiError(409, 'Only regulations under review can be reviewed.')
 
-  await repo.addApprovalStep(id, 'reviewed', byId, note)
+  if (user.role === 'hod' && user.departmentId && row.program?.departmentId !== user.departmentId) {
+    throw new ApiError(403, 'Access denied: You can only review regulations within your assigned department.')
+  }
+
+  await repo.addApprovalStep(id, 'reviewed', user.id, note)
   return toRegulation((await repo.findById(id))!)
 }
 
@@ -119,13 +146,21 @@ export async function approve(id: string, byId: string) {
   return toRegulation((await repo.findById(id))!)
 }
 
-export async function reject(id: string, byId: string, note: string) {
+export async function reject(
+  id: string,
+  user: { id: string; role: Role; departmentId: string | null },
+  note: string
+) {
   const row = await repo.findById(id)
   if (!row) throw new ApiError(404, 'Regulation not found')
   if (row.status !== 'review') throw new ApiError(409, 'Only regulations under review can be rejected.')
 
+  if (user.role === 'hod' && user.departmentId && row.program?.departmentId !== user.departmentId) {
+    throw new ApiError(403, 'Access denied: You can only reject regulations within your assigned department.')
+  }
+
   await repo.setStatus(id, 'draft')
-  await repo.addApprovalStep(id, 'rejected', byId, note)
+  await repo.addApprovalStep(id, 'rejected', user.id, note)
   return toRegulation((await repo.findById(id))!)
 }
 

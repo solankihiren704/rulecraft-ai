@@ -12,8 +12,8 @@ usersRouter.use(authenticate)
 // Unlike most modules, this router gates GET too — the user directory is
 // itself an access-control surface, not general academic data, so only
 // staff who administer accounts get to browse it at all.
-const view = authorize('super_admin', 'registrar')
-const manage = authorize('super_admin')
+const view = authorize('super_admin', 'registrar', 'hod')
+const manage = authorize('super_admin', 'registrar', 'hod')
 
 usersRouter.get('/', view, validate({ query: listUsersQuerySchema }), controller.list)
 usersRouter.get('/:id', view, validate({ params: idParamSchema }), controller.getById)

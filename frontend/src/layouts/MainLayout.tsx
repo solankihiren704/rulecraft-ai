@@ -1,5 +1,6 @@
 import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom'
 import {
+  Award,
   Bell,
   BookOpenCheck,
   Building2,
@@ -13,7 +14,11 @@ import {
   Menu,
   Search,
   Settings2,
+  TableProperties,
+  Trophy,
   Users,
+  KeyRound,
+  Loader2,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
@@ -22,6 +27,10 @@ import { notifications as initialNotifications } from '@/services/mockData'
 import CommandPalette from '@/components/CommandPalette'
 import AiAssistantBubble from '@/components/AiAssistantBubble'
 import Modal from '@/components/ui/Modal'
+import * as authApi from '@/api/auth'
+import { ApiRequestError } from '@/api/client'
+
+import type { Role } from '@/types'
 
 const ROLE_LABELS: Record<string, string> = {
   super_admin: 'Super Admin',
@@ -31,15 +40,25 @@ const ROLE_LABELS: Record<string, string> = {
   student: 'Student',
 }
 
-const navigation = [
-  { label: 'Command center', path: '/', icon: LayoutDashboard },
-  { label: 'Students', path: '/students', icon: GraduationCap },
-  { label: 'Academic structure', path: '/academic-structure', icon: Building2 },
-  { label: 'Regulations', path: '/regulations', icon: BookOpenCheck },
-  { label: 'Rule engine', path: '/rule-engine', icon: GitBranch },
-  { label: 'Simulator', path: '/simulator', icon: FlaskConical },
-  { label: 'Users & roles', path: '/users', icon: Users },
-  { label: 'Reports', path: '/reports', icon: FileBarChart },
+interface NavigationItem {
+  label: string
+  path: string
+  icon: typeof LayoutDashboard
+  roles: Role[]
+}
+
+const baseNavigation: NavigationItem[] = [
+  { label: 'Command center', path: '/', icon: LayoutDashboard, roles: ['super_admin', 'registrar', 'hod', 'faculty', 'student'] },
+  { label: 'Final results', path: '/results', icon: Award, roles: ['super_admin', 'registrar', 'hod', 'faculty', 'student'] },
+  { label: 'University ranks', path: '/ranks', icon: Trophy, roles: ['super_admin', 'registrar', 'hod', 'faculty', 'student'] },
+  { label: 'Gradebook', path: '/gradebook', icon: TableProperties, roles: ['super_admin', 'registrar', 'hod', 'faculty'] },
+  { label: 'Students', path: '/students', icon: GraduationCap, roles: ['super_admin', 'registrar', 'hod', 'faculty'] },
+  { label: 'Academic structure', path: '/academic-structure', icon: Building2, roles: ['super_admin', 'registrar', 'hod'] },
+  { label: 'Regulations', path: '/regulations', icon: BookOpenCheck, roles: ['super_admin', 'registrar', 'hod'] },
+  { label: 'Rule engine', path: '/rule-engine', icon: GitBranch, roles: ['super_admin', 'registrar', 'hod'] },
+  { label: 'Simulator', path: '/simulator', icon: FlaskConical, roles: ['super_admin', 'registrar', 'hod'] },
+  { label: 'Reports', path: '/reports', icon: FileBarChart, roles: ['super_admin', 'registrar', 'hod'] },
+  { label: 'Users & roles', path: '/users', icon: Users, roles: ['super_admin', 'registrar', 'hod'] },
 ]
 
 export default function MainLayout() {
@@ -55,9 +74,42 @@ export default function MainLayout() {
   const [notifications, setNotifications] = useState(initialNotifications)
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [passwordError, setPasswordError] = useState('')
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
 
-  const canAdminister = user?.role === 'super_admin' || user?.role === 'registrar'
+  async function handlePasswordSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setPasswordError('')
+    if (newPassword.length < 6) {
+      setPasswordError('New password must be at least 6 characters.')
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError('New passwords do not match.')
+      return
+    }
+    setIsChangingPassword(true)
+    try {
+      await authApi.changePassword(currentPassword, newPassword)
+      showToast('Password updated successfully! Future logins will use your new password.')
+      setChangePasswordOpen(false)
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+    } catch (err) {
+      setPasswordError(err instanceof ApiRequestError ? err.message : 'Failed to update password.')
+    } finally {
+      setIsChangingPassword(false)
+    }
+  }
+
+  const canAdminister = user?.role === 'super_admin' || user?.role === 'registrar' || user?.role === 'hod'
   const unreadCount = notifications.filter((n) => !n.read).length
+  const navigation = baseNavigation.filter((item) => user && item.roles.includes(user.role))
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -100,7 +152,8 @@ export default function MainLayout() {
           onClick={() => setMobileNavigationOpen(false)}
         >
           <aside
-            className="h-full w-[280px] overflow-y-auto bg-[#0f172a] p-5 text-white"
+            className="h-full w-[280px] overflow-y-auto no-scrollbar bg-[#0f172a] p-5 text-white"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-8 flex items-center justify-between">
@@ -134,9 +187,9 @@ export default function MainLayout() {
       )}
 
       <div className="flex min-h-screen">
-        {/* Desktop Sidebar */}
-        <aside className="hidden w-[252px] shrink-0 flex-col bg-[#0f172a] text-white lg:flex">
-          <div className="flex items-center gap-3 px-7 pb-10 pt-8">
+        {/* Desktop Sidebar (Fixed / Sticky at full viewport height) */}
+        <aside className="hidden w-[252px] shrink-0 flex-col bg-[#0f172a] text-white lg:sticky lg:top-0 lg:flex lg:h-screen lg:overflow-hidden">
+          <div className="flex shrink-0 items-center gap-3 px-7 pb-8 pt-8">
             <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#818cf8] text-[#0f172a]">
               <GitBranch size={20} strokeWidth={2.5} />
             </div>
@@ -149,7 +202,10 @@ export default function MainLayout() {
               </p>
             </div>
           </div>
-          <nav className="flex-1 space-y-1 overflow-y-auto px-3">
+          <nav
+            className="flex-1 space-y-1 overflow-y-auto no-scrollbar px-3"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
             <p className="px-4 pb-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[#64748b]">
               Workspace
             </p>
@@ -169,7 +225,7 @@ export default function MainLayout() {
             ))}
           </nav>
           {canAdminister && (
-            <div className="px-6 pb-7">
+            <div className="shrink-0 px-6 pb-7">
               <div className="border-t border-[#1e293b] pt-5">
                 <button
                   onClick={() => selectNavigation('/users')}
@@ -184,8 +240,8 @@ export default function MainLayout() {
 
         {/* Main Content */}
         <section className="min-w-0 flex-1">
-          {/* Header */}
-          <header className="flex h-[76px] items-center justify-between border-b border-[#e2e8f0] bg-[#ffffff] px-5 sm:px-9">
+          {/* Header (Sticky at top of screen) */}
+          <header className="sticky top-0 z-30 flex h-[76px] items-center justify-between border-b border-[#e2e8f0] bg-white/95 px-5 backdrop-blur-sm sm:px-9">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setMobileNavigationOpen(true)}
@@ -240,7 +296,7 @@ export default function MainLayout() {
                   )}
                 </button>
                 {notificationsOpen && (
-                  <div className="absolute right-0 top-9 z-20 w-80 border border-[#e2e8f0] bg-[#ffffff] text-xs shadow-lg">
+                  <div className="absolute right-0 top-9 z-50 w-80 rounded-xl border border-[#e2e8f0] bg-[#ffffff] text-xs shadow-xl">
                     <div className="flex items-center justify-between border-b border-[#e2e8f0] px-4 py-3">
                       <p className="font-bold text-[#0f172a]">Notifications</p>
                       <button onClick={markAllRead} className="font-semibold text-[#4f46e5]">
@@ -277,7 +333,7 @@ export default function MainLayout() {
                   <ChevronDown size={15} className="text-[#64748b]" />
                 </button>
                 {organizationOpen && (
-                  <div className="absolute right-0 top-10 z-20 w-56 border border-[#e2e8f0] bg-[#ffffff] p-2 text-xs shadow-lg">
+                  <div className="absolute right-0 top-10 z-50 w-56 rounded-xl border border-[#e2e8f0] bg-[#ffffff] p-2 text-xs shadow-xl">
                     <button
                       onClick={() => switchOrganization('Northbridge University')}
                       className="w-full px-3 py-2 text-left font-semibold text-[#0f172a] hover:bg-[#f1f5f9]"
@@ -313,7 +369,7 @@ export default function MainLayout() {
                   <ChevronDown size={14} className="hidden text-[#64748b] sm:block" />
                 </button>
                 {userMenuOpen && (
-                  <div className="absolute right-0 top-11 z-20 w-48 border border-[#e2e8f0] bg-[#ffffff] p-2 text-xs shadow-lg">
+                  <div className="absolute right-0 top-11 z-50 w-48 rounded-xl border border-[#e2e8f0] bg-[#ffffff] p-2 text-xs shadow-xl">
                     <button
                       onClick={() => {
                         setUserMenuOpen(false)
@@ -322,6 +378,19 @@ export default function MainLayout() {
                       className="w-full px-3 py-2 text-left text-[#475569] hover:bg-[#f1f5f9]"
                     >
                       View profile
+                    </button>
+                    <button
+                      onClick={() => {
+                        setUserMenuOpen(false)
+                        setPasswordError('')
+                        setCurrentPassword('')
+                        setNewPassword('')
+                        setConfirmPassword('')
+                        setChangePasswordOpen(true)
+                      }}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-[#475569] hover:bg-[#f1f5f9]"
+                    >
+                      <KeyRound size={13} /> Change password
                     </button>
                     <button
                       onClick={handleLogout}
@@ -376,6 +445,71 @@ export default function MainLayout() {
         >
           <LogOut size={14} /> Log out
         </button>
+      </Modal>
+
+      <Modal open={changePasswordOpen} title="Change password" onClose={() => setChangePasswordOpen(false)} widthClassName="max-w-sm">
+        <form onSubmit={handlePasswordSubmit} className="space-y-4">
+          <p className="text-xs text-[#64748b]">
+            Your new password will be encrypted and saved in the central university database.
+          </p>
+          {passwordError && (
+            <div className="rounded-lg border-l-4 border-[#dc2626] bg-[#fee2e2] p-2.5 text-xs font-semibold text-[#dc2626]">
+              {passwordError}
+            </div>
+          )}
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-[#475569]">Current password</label>
+            <input
+              type="password"
+              required
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              className="w-full rounded-lg border border-[#cbd5e1] px-3 py-2 text-xs text-[#0f172a] outline-none focus:border-[#4f46e5]"
+              placeholder="Enter current password"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-[#475569]">New password</label>
+            <input
+              type="password"
+              required
+              minLength={6}
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="w-full rounded-lg border border-[#cbd5e1] px-3 py-2 text-xs text-[#0f172a] outline-none focus:border-[#4f46e5]"
+              placeholder="At least 6 characters"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-[#475569]">Confirm new password</label>
+            <input
+              type="password"
+              required
+              minLength={6}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full rounded-lg border border-[#cbd5e1] px-3 py-2 text-xs text-[#0f172a] outline-none focus:border-[#4f46e5]"
+              placeholder="Repeat new password"
+            />
+          </div>
+          <div className="mt-4 flex justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={() => setChangePasswordOpen(false)}
+              className="rounded-lg border border-[#e2e8f0] px-3 py-2 text-xs font-semibold text-[#475569] hover:bg-[#f1f5f9]"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isChangingPassword}
+              className="flex items-center gap-1.5 rounded-lg bg-[#0f172a] px-4 py-2 text-xs font-semibold text-white shadow hover:bg-[#1e293b] disabled:opacity-60"
+            >
+              {isChangingPassword && <Loader2 size={13} className="animate-spin" />}
+              Update password
+            </button>
+          </div>
+        </form>
       </Modal>
     </main>
   )

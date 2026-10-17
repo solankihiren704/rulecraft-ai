@@ -59,6 +59,7 @@ export interface Student {
   year: number
   status: StudentStatus
   gpa: number
+  attendance?: number
   enrollDate: string
 }
 

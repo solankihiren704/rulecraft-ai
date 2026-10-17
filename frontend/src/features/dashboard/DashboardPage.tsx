@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   AlertCircle,
   ArrowUpRight,
+  Award,
   BookOpenCheck,
   CheckCircle2,
   ClipboardCheck,
@@ -185,14 +186,23 @@ export default function DashboardPage() {
           </h1>
           <p className="mt-2 text-sm font-medium text-[#475569]">Here is what is happening across your academic ecosystem.</p>
         </div>
-        <button
-          onClick={() => navigate('/simulator')}
-          className="flex w-fit items-center gap-2 rounded-lg bg-[#0f172a] px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#1e293b]"
-        >
-          <Sparkles size={15} className="text-[#818cf8]" />
-          Run eligibility check
-          <ArrowUpRight size={14} />
-        </button>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            onClick={() => navigate('/results')}
+            className="flex w-fit items-center gap-2 rounded-lg bg-[#4338ca] px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#3730a3]"
+          >
+            <Award size={15} className="text-[#c7d2fe]" />
+            {isStudent ? 'View My Final Result' : 'View Final Results'}
+          </button>
+          <button
+            onClick={() => navigate('/simulator')}
+            className="flex w-fit items-center gap-2 rounded-lg bg-[#0f172a] px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#1e293b]"
+          >
+            <Sparkles size={15} className="text-[#818cf8]" />
+            Run eligibility check
+            <ArrowUpRight size={14} />
+          </button>
+        </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

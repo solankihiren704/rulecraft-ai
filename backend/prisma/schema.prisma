@@ -201,6 +201,7 @@ model Student {
   year       Int
   status     StudentStatus @default(active)
   gpa        Float
+  attendance Float?        @default(85)
   enrollDate DateTime      @db.Date
   /// Optional 1:1 login — a Student is a record; a User is a login. Only
   /// ever set for the 'student' role.

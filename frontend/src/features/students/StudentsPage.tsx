@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { AlertCircle, Plus, Search, Download, Upload, FileSpreadsheet, Eye, Edit2, Trash2, Loader2, CheckCircle2, XCircle, GraduationCap, UserCheck, Award } from 'lucide-react'
+import { AlertCircle, Plus, Search, Download, Upload, FileSpreadsheet, Eye, Edit2, Trash2, Loader2, CheckCircle2, XCircle, GraduationCap, UserCheck, Award, Sparkles, Share2, KeyRound } from 'lucide-react'
 import { useToast } from '@/contexts/ToastContext'
 import { useAuth } from '@/contexts/AuthContext'
 import Modal from '@/components/ui/Modal'
@@ -15,6 +15,7 @@ import * as programsApi from '@/api/programs'
 import * as departmentsApi from '@/api/departments'
 import { ApiRequestError } from '@/api/client'
 import { triggerBlobDownload } from '@/utils/download'
+import FinalResultModal from './FinalResultModal'
 import type { ImportSummary } from '@/api/students'
 import type { Department, Program, Student } from '@/types'
 
@@ -26,15 +27,27 @@ const schema = z.object({
   year: z.coerce.number().min(1).max(6),
   status: z.enum(['active', 'suspended', 'graduated']),
   gpa: z.coerce.number().min(0, 'GPA cannot be negative.').max(10, 'GPA cannot exceed 10.'),
+  attendance: z.coerce.number().min(0, 'Attendance cannot be negative.').max(100, 'Attendance cannot exceed 100%.'),
 })
 
 type FormValues = z.infer<typeof schema>
 const PAGE_SIZE = 5
-const formFields: (keyof FormValues)[] = ['name', 'email', 'studentId', 'programId', 'year', 'status', 'gpa']
+const formFields: (keyof FormValues)[] = ['name', 'email', 'studentId', 'programId', 'year', 'status', 'gpa', 'attendance']
 
 function downloadCsv(students: Student[], programName: (id: string) => string, departmentName: (id: string) => string) {
-  const header = ['Name', 'Email', 'Student ID', 'Department', 'Program', 'Year', 'Status', 'GPA', 'Enrolled']
-  const rows = students.map((s) => [s.name, s.email, s.studentId, departmentName(s.programId), programName(s.programId), s.year, s.status, s.gpa.toFixed(2), s.enrollDate])
+  const header = ['Name', 'Email', 'Student ID', 'Department', 'Program', 'Year', 'Status', 'GPA', 'Attendance %', 'Enrolled']
+  const rows = students.map((s) => [
+    s.name,
+    s.email,
+    s.studentId,
+    departmentName(s.programId),
+    programName(s.programId),
+    s.year,
+    s.status,
+    s.gpa.toFixed(2),
+    `${s.attendance != null ? Math.round(s.attendance) : 85}%`,
+    s.enrollDate,
+  ])
   const escape = (value: string | number) => `"${String(value).replace(/"/g, '""')}"`
   const csv = [header, ...rows].map((row) => row.map(escape).join(',')).join('\r\n')
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
@@ -51,7 +64,8 @@ function downloadCsv(students: Student[], programName: (id: string) => string, d
 export default function StudentsPage() {
   const { showToast } = useToast()
   const { user } = useAuth()
-  const canManage = user?.role === 'super_admin' || user?.role === 'registrar'
+  const isHod = user?.role === 'hod'
+  const canManage = user?.role === 'super_admin' || user?.role === 'registrar' || isHod
 
   const [students, setStudents] = useState<Student[]>([])
   const [programs, setPrograms] = useState<Program[]>([])
@@ -68,6 +82,7 @@ export default function StudentsPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editingStudent, setEditingStudent] = useState<Student | null>(null)
   const [viewingStudent, setViewingStudent] = useState<Student | null>(null)
+  const [resultModalStudent, setResultModalStudent] = useState<Student | null>(null)
   const [deletingStudent, setDeletingStudent] = useState<Student | null>(null)
   const [isExporting, setIsExporting] = useState(false)
 
@@ -83,6 +98,9 @@ export default function StudentsPage() {
   const [isDownloadingTemplate, setIsDownloadingTemplate] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
   const [importResult, setImportResult] = useState<ImportSummary | null>(null)
+  const [autoProvision, setAutoProvision] = useState(true)
+  const [isDownloadingCreds, setIsDownloadingCreds] = useState(false)
+  const [isResettingPassword, setIsResettingPassword] = useState(false)
 
   const {
     register,
@@ -128,6 +146,18 @@ export default function StudentsPage() {
     return departments.find((d) => d.id === deptId)?.name ?? 'Unknown department'
   }
 
+  const myDeptId = useMemo(() => {
+    if (!isHod || !user?.department) return null
+    return departments.find((d) => d.name === user.department)?.id ?? null
+  }, [isHod, user?.department, departments])
+
+  const addProgramOptions = useMemo(() => {
+    if (isHod && myDeptId) {
+      return programs.filter((p) => p.departmentId === myDeptId)
+    }
+    return programs
+  }, [isHod, myDeptId, programs])
+
   // Programs shown in the filter/import dropdowns narrow to the selected
   // department, so picking a program can never disagree with it.
   const filterProgramOptions = useMemo(
@@ -135,8 +165,8 @@ export default function StudentsPage() {
     [programs, filterDepartment],
   )
   const importProgramOptions = useMemo(
-    () => (importDepartment === 'all' ? programs : programs.filter((p) => p.departmentId === importDepartment)),
-    [programs, importDepartment],
+    () => (importDepartment === 'all' ? (isHod && myDeptId ? programs.filter((p) => p.departmentId === myDeptId) : programs) : programs.filter((p) => p.departmentId === importDepartment)),
+    [programs, importDepartment, isHod, myDeptId],
   )
 
   const filtered = useMemo(() => {
@@ -226,7 +256,8 @@ export default function StudentsPage() {
 
   function openCreate() {
     setEditingStudent(null)
-    reset({ name: '', email: '', studentId: '', programId: programs[0]?.id ?? '', year: 1, status: 'active', gpa: 0 })
+    const initialProgram = addProgramOptions[0]?.id ?? ''
+    reset({ name: '', email: '', studentId: '', programId: initialProgram, year: 1, status: 'active', gpa: 0, attendance: 85 })
     setModalOpen(true)
   }
 
@@ -240,6 +271,7 @@ export default function StudentsPage() {
       year: student.year,
       status: student.status,
       gpa: student.gpa,
+      attendance: student.attendance ?? 85,
     })
     setModalOpen(true)
   }
@@ -302,7 +334,7 @@ export default function StudentsPage() {
   }
 
   function openImport() {
-    setImportDepartment('all')
+    setImportDepartment(isHod && myDeptId ? myDeptId : 'all')
     setImportProgram('all')
     setImportFile(null)
     setImportResult(null)
@@ -335,19 +367,52 @@ export default function StudentsPage() {
     setIsImporting(true)
     setImportResult(null)
     try {
-      const result = await studentsApi.importStudents(importFile)
+      const result = await studentsApi.importStudents(importFile, autoProvision)
       setImportResult(result)
       if (result.createdCount > 0) {
         await loadData()
         setPage(1)
       }
-      if (result.failedCount === 0) {
+      if (result.autoProvisioned && (result.autoProvisioned.departments.length > 0 || result.autoProvisioned.programs.length > 0)) {
+        showToast(
+          `Smart Ingestion: Created ${result.autoProvisioned.departments.length} department(s) and ${result.autoProvisioned.programs.length} program(s) in Academic Structure!`,
+        )
+      } else if (result.failedCount === 0) {
         showToast(`Imported ${result.createdCount} student${result.createdCount === 1 ? '' : 's'}.`)
       }
     } catch (err) {
       showToast(err instanceof ApiRequestError ? err.message : 'Failed to import the file.', 'error')
     } finally {
       setIsImporting(false)
+    }
+  }
+
+  async function handleDownloadCredentials(studentIds?: string[]) {
+    setIsDownloadingCreds(true)
+    try {
+      const { blob, filename } = await studentsApi.exportCredentials({
+        departmentId: filterDepartment === 'all' ? undefined : filterDepartment,
+        programId: filterProgram === 'all' ? undefined : filterProgram,
+        studentIds,
+      })
+      triggerBlobDownload(blob, filename)
+      showToast('Student credentials spreadsheet downloaded.')
+    } catch (err) {
+      showToast(err instanceof ApiRequestError ? err.message : 'Failed to download credentials.', 'error')
+    } finally {
+      setIsDownloadingCreds(false)
+    }
+  }
+
+  async function handleResetPassword(student: Student) {
+    setIsResettingPassword(true)
+    try {
+      const res = await studentsApi.resetPassword(student.id)
+      showToast(res.message)
+    } catch (err) {
+      showToast(err instanceof ApiRequestError ? err.message : 'Failed to reset password.', 'error')
+    } finally {
+      setIsResettingPassword(false)
     }
   }
 
@@ -477,6 +542,17 @@ export default function StudentsPage() {
           {isExporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
           {isExporting ? 'Exporting...' : 'Export'}
         </button>
+        {canManage && (
+          <button
+            onClick={() => handleDownloadCredentials(selectedIds.size > 0 ? Array.from(selectedIds) : undefined)}
+            disabled={isDownloadingCreds || filtered.length === 0}
+            className="flex items-center gap-2 rounded border border-[#86efac] bg-[#f0fdf4] px-3 py-2 text-xs font-semibold text-[#166534] hover:bg-[#dcfce7] disabled:opacity-60"
+            title="Download credentials spreadsheet formatted for batch WhatsApp group"
+          >
+            {isDownloadingCreds ? <Loader2 size={14} className="animate-spin" /> : <Share2 size={14} />}
+            WhatsApp Credentials (.xlsx)
+          </button>
+        )}
       </div>
 
       <div className="mb-6 grid gap-3 sm:grid-cols-3">
@@ -570,6 +646,7 @@ export default function StudentsPage() {
                     <th className="px-5 py-3 text-left font-semibold text-[#475569]">Year</th>
                     <th className="px-5 py-3 text-left font-semibold text-[#475569]">Status</th>
                     <th className="px-5 py-3 text-left font-semibold text-[#475569]">GPA</th>
+                    <th className="px-5 py-3 text-left font-semibold text-[#475569]">Attendance</th>
                     <th className="px-5 py-3 text-center font-semibold text-[#475569]">Actions</th>
                   </tr>
                 </thead>
@@ -601,6 +678,19 @@ export default function StudentsPage() {
                       </td>
                       <td className="px-5 py-4 font-semibold text-[#0f172a]">{student.gpa.toFixed(1)}</td>
                       <td className="px-5 py-4">
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-bold ${
+                            (student.attendance ?? 85) >= 75
+                              ? 'bg-[#dcfce7] text-[#15803d]'
+                              : (student.attendance ?? 85) >= 65
+                              ? 'bg-[#fef3c7] text-[#b45309]'
+                              : 'bg-[#fee2e2] text-[#b91c1c]'
+                          }`}
+                        >
+                          {student.attendance != null ? `${Math.round(student.attendance)}%` : '85%'}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4">
                         <div className="flex justify-center gap-2">
                           <button
                             onClick={() => setViewingStudent(student)}
@@ -609,6 +699,14 @@ export default function StudentsPage() {
                             aria-label={`View ${student.name}`}
                           >
                             <Eye size={16} />
+                          </button>
+                          <button
+                            onClick={() => setResultModalStudent(student)}
+                            className="flex items-center gap-1 rounded bg-[#eef2ff] px-2 py-0.5 text-[11px] font-bold text-[#4338ca] transition hover:bg-[#e0e7ff]"
+                            title="View Official Final Result & Marksheet"
+                            aria-label={`View result for ${student.name}`}
+                          >
+                            <Award size={13} /> Result
                           </button>
                           {canManage && (
                             <>
@@ -687,7 +785,7 @@ export default function StudentsPage() {
             </FormField>
             <FormField label="Program" htmlFor="programId" error={errors.programId?.message} required>
               <select id="programId" className={inputClassName} {...register('programId')}>
-                {programs.map((p) => (
+                {addProgramOptions.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
                   </option>
@@ -695,7 +793,7 @@ export default function StudentsPage() {
               </select>
             </FormField>
           </div>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <FormField label="Year" htmlFor="year" error={errors.year?.message} required>
               <select id="year" className={inputClassName} {...register('year')}>
                 {[1, 2, 3, 4, 5, 6].map((y) => (
@@ -714,6 +812,9 @@ export default function StudentsPage() {
             </FormField>
             <FormField label="GPA" htmlFor="gpa" error={errors.gpa?.message} required>
               <input id="gpa" type="number" step="0.1" min="0" max="10" className={errors.gpa ? inputErrorClassName : inputClassName} {...register('gpa')} />
+            </FormField>
+            <FormField label="Attendance %" htmlFor="attendance" error={errors.attendance?.message}>
+              <input id="attendance" type="number" step="1" min="0" max="100" placeholder="85" className={errors.attendance ? inputErrorClassName : inputClassName} {...register('attendance')} />
             </FormField>
           </div>
           <div className="mt-2 flex justify-end gap-3">
@@ -767,10 +868,52 @@ export default function StudentsPage() {
               <dt className="text-[#64748b]">GPA</dt>
               <dd className="font-semibold text-[#0f172a]">{viewingStudent.gpa.toFixed(2)}</dd>
             </div>
+            <div className="flex justify-between border-b border-[#e2e8f0] pb-2">
+              <dt className="text-[#64748b]">Attendance</dt>
+              <dd>
+                <span
+                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-bold ${
+                    (viewingStudent.attendance ?? 85) >= 75
+                      ? 'bg-[#dcfce7] text-[#15803d]'
+                      : (viewingStudent.attendance ?? 85) >= 65
+                      ? 'bg-[#fef3c7] text-[#b45309]'
+                      : 'bg-[#fee2e2] text-[#b91c1c]'
+                  }`}
+                >
+                  {viewingStudent.attendance != null ? `${Math.round(viewingStudent.attendance)}%` : '85%'}
+                </span>
+              </dd>
+            </div>
             <div className="flex justify-between">
               <dt className="text-[#64748b]">Enrolled</dt>
               <dd className="font-semibold text-[#0f172a]">{viewingStudent.enrollDate}</dd>
             </div>
+            <div className="border-t border-[#e2e8f0] pt-3">
+              <button
+                type="button"
+                onClick={() => {
+                  const s = viewingStudent
+                  setViewingStudent(null)
+                  setResultModalStudent(s)
+                }}
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#4338ca] py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#3730a3]"
+              >
+                <Award size={15} /> View Official Marksheet & Result
+              </button>
+            </div>
+            {canManage && (
+              <div className="pt-1">
+                <button
+                  type="button"
+                  disabled={isResettingPassword}
+                  onClick={() => handleResetPassword(viewingStudent)}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#f59e0b] bg-[#fffbeb] py-2 text-xs font-semibold text-[#b45309] shadow-sm transition hover:bg-[#fef3c7] disabled:opacity-60"
+                >
+                  {isResettingPassword ? <Loader2 size={13} className="animate-spin" /> : <KeyRound size={13} />}
+                  Reset Password to Demo@1234
+                </button>
+              </div>
+            )}
           </dl>
         )}
       </Modal>
@@ -803,6 +946,42 @@ export default function StudentsPage() {
               <p className="ml-auto text-xs text-[#94a3b8]">{importResult.totalRows} row{importResult.totalRows === 1 ? '' : 's'} read</p>
             </div>
 
+            {/* Auto-Provisioning Celebration Banner */}
+            {importResult.autoProvisioned &&
+              (importResult.autoProvisioned.departments.length > 0 ||
+                importResult.autoProvisioned.programs.length > 0) && (
+                <div className="mb-4 rounded-xl border border-[#bbf7d0] bg-[#f0fdf4] p-4 text-xs text-[#166534]">
+                  <div className="flex items-center gap-2">
+                    <Sparkles size={16} className="text-[#15803d]" />
+                    <p className="font-black uppercase tracking-wider text-[#15803d]">
+                      Smart Ingestion: Academic Structure Auto-Provisioned!
+                    </p>
+                  </div>
+                  <p className="mt-1 text-[#166534]">
+                    The following entities were automatically configured in your central Academic Structure:
+                  </p>
+                  <ul className="mt-2 list-inside list-disc space-y-1 font-semibold text-[#14532d]">
+                    {importResult.autoProvisioned.departments.length > 0 && (
+                      <li>
+                        <strong>Departments created:</strong> {importResult.autoProvisioned.departments.join(', ')}
+                      </li>
+                    )}
+                    {importResult.autoProvisioned.programs.length > 0 && (
+                      <li>
+                        <strong>Programs created:</strong> {importResult.autoProvisioned.programs.join(', ')}
+                      </li>
+                    )}
+                    <li>
+                      <strong>Curricula generated:</strong> {importResult.autoProvisioned.semestersCount} Semesters &{' '}
+                      {importResult.autoProvisioned.subjectsCount} core subjects
+                    </li>
+                    <li>
+                      <strong>Regulations:</strong> Active examination passing & attendance policies published
+                    </li>
+                  </ul>
+                </div>
+              )}
+
             {importResult.failedCount > 0 && (
               <div className="mb-4">
                 <p className="mb-2 text-xs font-semibold text-[#475569]">Skipped rows — fix these and re-upload if needed</p>
@@ -822,7 +1001,18 @@ export default function StudentsPage() {
               </div>
             )}
 
-            <div className="flex justify-end gap-3">
+            <div className="flex flex-wrap items-center justify-end gap-3">
+              {importResult.createdCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => handleDownloadCredentials(importResult.createdStudentIds)}
+                  disabled={isDownloadingCreds}
+                  className="flex items-center gap-2 rounded-lg bg-[#16a34a] px-4 py-2 text-xs font-bold text-white shadow hover:bg-[#15803d] disabled:opacity-60"
+                >
+                  {isDownloadingCreds ? <Loader2 size={13} className="animate-spin" /> : <FileSpreadsheet size={13} />}
+                  📥 Download Credentials for WhatsApp (.xlsx)
+                </button>
+              )}
               <button
                 onClick={openImport}
                 className="rounded-lg border border-[#e2e8f0] px-4 py-2 text-xs font-semibold text-[#475569] hover:bg-[#f1f5f9]"
@@ -848,13 +1038,14 @@ export default function StudentsPage() {
               <div className="mb-3 grid grid-cols-2 gap-3">
                 <select
                   value={importDepartment}
+                  disabled={isHod}
                   onChange={(e) => {
                     setImportDepartment(e.target.value)
                     setImportProgram('all')
                   }}
                   className={inputClassName}
                 >
-                  <option value="all">All departments</option>
+                  {!isHod && <option value="all">All departments</option>}
                   {departments.map((d) => (
                     <option key={d.id} value={d.id}>
                       {d.name}
@@ -898,6 +1089,25 @@ export default function StudentsPage() {
                 Each row is validated independently — rows with a problem (bad email, unknown program code, a duplicate ID)
                 are skipped and listed after upload; everything else is still imported.
               </p>
+
+              {/* Smart Auto-Provisioning Toggle */}
+              <label className="mt-3 flex cursor-pointer items-start gap-2.5 rounded-xl border border-[#c7d2fe] bg-[#f5f7ff] p-3 text-xs">
+                <input
+                  type="checkbox"
+                  checked={autoProvision}
+                  onChange={(e) => setAutoProvision(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-[#cbd5e1] text-[#4338ca] focus:ring-[#4338ca]"
+                />
+                <div>
+                  <div className="flex items-center gap-1.5 font-bold text-[#0f172a]">
+                    <Sparkles size={14} className="text-[#4338ca]" />
+                    <span>Smart Ingestion (Auto-Provision Academic Structure)</span>
+                  </div>
+                  <p className="mt-0.5 text-[11px] leading-relaxed text-[#475569]">
+                    If students belong to new departments or programs, automatically create their Departments, Programs, Semesters (1-8), Curricula, and Academic Regulations into Academic Structure.
+                  </p>
+                </div>
+              </label>
             </div>
 
             <div className="flex justify-end gap-3">
@@ -934,6 +1144,14 @@ export default function StudentsPage() {
         onConfirm={confirmBulkDelete}
         onCancel={() => setBulkDeleteOpen(false)}
       />
+
+      <FinalResultModal
+        open={!!resultModalStudent}
+        studentId={resultModalStudent?.id ?? null}
+        studentName={resultModalStudent?.name}
+        onClose={() => setResultModalStudent(null)}
+      />
     </div>
   )
 }
+

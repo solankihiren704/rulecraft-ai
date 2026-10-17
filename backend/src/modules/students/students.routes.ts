@@ -17,7 +17,7 @@ import {
 export const studentsRouter = Router()
 studentsRouter.use(authenticate)
 
-const manage = authorize('super_admin', 'registrar')
+const manage = authorize('super_admin', 'registrar', 'hod')
 
 // Memory storage — files are small class rosters (5MB cap below), parsed
 // once via exceljs and discarded, never written to disk.
@@ -44,6 +44,10 @@ studentsRouter.post('/import', manage, upload.single('file'), controller.importS
 studentsRouter.post('/export', validate({ body: exportStudentsSchema }), controller.exportSelected)
 
 studentsRouter.get('/', validate({ query: listStudentsQuerySchema }), controller.list)
+studentsRouter.post('/export-credentials', manage, controller.exportCredentials)
+studentsRouter.post('/:id/reset-password', manage, validate({ params: idParamSchema }), controller.resetPassword)
+studentsRouter.get('/:id/result/pdf', validate({ params: idParamSchema }), controller.downloadResultPdf)
+studentsRouter.get('/:id/result', validate({ params: idParamSchema }), controller.getResult)
 studentsRouter.get('/:id', validate({ params: idParamSchema }), controller.getById)
 studentsRouter.post('/', manage, validate({ body: createStudentSchema }), controller.create)
 studentsRouter.patch('/:id', manage, validate({ params: idParamSchema, body: updateStudentSchema }), controller.update)

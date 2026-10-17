@@ -43,7 +43,8 @@ const formFields: (keyof FormValues)[] = ['name', 'email', 'role', 'departmentId
 export default function UsersPage() {
   const { showToast } = useToast()
   const { user: currentUser } = useAuth()
-  const canManage = currentUser?.role === 'super_admin'
+  const isHod = currentUser?.role === 'hod'
+  const canManage = currentUser?.role === 'super_admin' || currentUser?.role === 'registrar' || isHod
 
   const [users, setUsers] = useState<AuthUser[]>([])
   const [departments, setDepartments] = useState<Department[]>([])
@@ -98,7 +99,8 @@ export default function UsersPage() {
 
   function openInvite() {
     setEditingUser(null)
-    reset({ name: '', email: '', role: 'faculty', departmentId: '' })
+    const myDeptId = isHod ? departmentIdForName(currentUser?.department) : ''
+    reset({ name: '', email: '', role: 'faculty', departmentId: myDeptId })
     setModalOpen(true)
   }
 
@@ -110,13 +112,19 @@ export default function UsersPage() {
 
   async function onSubmit(values: FormValues) {
     try {
+      const payload = { ...values }
+      if (isHod) {
+        payload.role = 'faculty'
+        payload.departmentId = departmentIdForName(currentUser?.department)
+      }
+
       if (editingUser) {
-        const updated = await usersApi.update(editingUser.id, values)
+        const updated = await usersApi.update(editingUser.id, payload)
         setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)))
         showToast(`${updated.name} updated.`)
         setModalOpen(false)
       } else {
-        const { user: created, tempPassword } = await usersApi.create(values)
+        const { user: created, tempPassword } = await usersApi.create(payload)
         setUsers((prev) => [created, ...prev])
         setModalOpen(false)
         setNewCredential({ name: created.name, email: created.email, tempPassword })
@@ -284,17 +292,21 @@ export default function UsersPage() {
           </FormField>
           <div className="grid grid-cols-2 gap-4">
             <FormField label="Role" htmlFor="user-role" error={errors.role?.message} required>
-              <select id="user-role" className={inputClassName} {...register('role')}>
-                {Object.entries(roleLabels).map(([id, label]) => (
-                  <option key={id} value={id}>
-                    {label}
-                  </option>
-                ))}
+              <select id="user-role" className={inputClassName} {...register('role')} disabled={isHod}>
+                {isHod ? (
+                  <option value="faculty">Faculty</option>
+                ) : (
+                  Object.entries(roleLabels).map(([id, label]) => (
+                    <option key={id} value={id}>
+                      {label}
+                    </option>
+                  ))
+                )}
               </select>
             </FormField>
             <FormField label="Department" htmlFor="user-department">
-              <select id="user-department" className={inputClassName} {...register('departmentId')}>
-                <option value="">None</option>
+              <select id="user-department" className={inputClassName} {...register('departmentId')} disabled={isHod}>
+                {!isHod && <option value="">None</option>}
                 {departments.map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.name}
@@ -303,6 +315,11 @@ export default function UsersPage() {
               </select>
             </FormField>
           </div>
+          {isHod && (
+            <p className="-mt-2 mb-3 text-[11px] font-medium text-[#4f46e5]">
+              As Head of Department, you can add Faculty members to {currentUser?.department ?? 'your department'}.
+            </p>
+          )}
           {!editingUser && (
             <p className="mb-4 text-[11px] text-[#94a3b8]">
               A temporary password is generated automatically — you'll see it once, right after creating this user.

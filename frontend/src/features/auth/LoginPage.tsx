@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import FormField, { inputClassName, inputErrorClassName } from '@/components/ui/FormField'
 
 const schema = z.object({
-  email: z.string().min(1, 'Email is required.').email('Enter a valid email address.'),
+  email: z.string().trim().min(1, 'Email or Student ID is required.'),
   password: z.string().min(1, 'Password is required.'),
 })
 
@@ -18,9 +18,9 @@ const DEMO_PASSWORD = 'Demo@1234'
 
 const demoAccounts = [
   { role: 'Super Admin', email: 'aarav.kulkarni@rulecraft.edu' },
-  { role: 'HOD', email: 'meera.nair@rulecraft.edu' },
-  { role: 'Faculty', email: 'sanjay.verma@rulecraft.edu' },
-  { role: 'Student', email: 'rajesh.kumar@university.edu' },
+  { role: 'HOD (CSE)', email: 'meera.nair@rulecraft.edu' },
+  { role: 'Faculty', email: 'devendra.sharma@rulecraft.edu' },
+  { role: 'Student (Roll No)', email: 'STU2024001' },
 ]
 
 export default function LoginPage() {
@@ -78,12 +78,12 @@ export default function LoginPage() {
             </div>
           )}
 
-          <FormField label="Email" htmlFor="email" error={errors.email?.message} required>
+          <FormField label="Email address or Student ID" htmlFor="email" error={errors.email?.message} required>
             <input
               id="email"
-              type="email"
-              autoComplete="email"
-              placeholder="you@university.edu"
+              type="text"
+              autoComplete="username"
+              placeholder="e.g. you@university.edu or STU2024001"
               className={errors.email ? inputErrorClassName : inputClassName}
               {...register('email')}
             />

@@ -18,6 +18,10 @@ const RuleEnginePage = lazy(() => import('@/features/rule-engine/RuleEnginePage'
 const SimulatorPage = lazy(() => import('@/features/simulator/SimulatorPage'))
 const UsersPage = lazy(() => import('@/features/users/UsersPage'))
 const ReportsPage = lazy(() => import('@/features/reports/ReportsPage'))
+const FinalResultsPage = lazy(() => import('@/features/results/FinalResultsPage'))
+const RankListPage = lazy(() => import('@/features/results/RankListPage'))
+const GradebookPage = lazy(() => import('@/features/gradebook/GradebookPage'))
+const PublicVerifyPage = lazy(() => import('@/features/results/PublicVerifyPage'))
 
 function RouteLoading() {
   return (
@@ -42,17 +46,35 @@ function App() {
             <Suspense fallback={<RouteLoading />}>
               <Routes>
                 <Route path="/login" element={<LoginPage />} />
+                <Route path="/verify/:token" element={<PublicVerifyPage />} />
                 <Route element={<ProtectedRoute />}>
                   <Route element={<MainLayout />}>
+                    {/* Open to all roles (Super Admin, Registrar, HOD, Faculty, Student) */}
                     <Route path="/" element={<DashboardPage />} />
-                    <Route path="/students" element={<StudentsPage />} />
-                    <Route path="/academic-structure" element={<AcademicStructurePage />} />
-                    <Route path="/regulations" element={<RegulationsPage />} />
-                    <Route path="/regulations/:regulationId" element={<RegulationDetailPage />} />
-                    <Route path="/rule-engine" element={<RuleEnginePage />} />
-                    <Route path="/simulator" element={<SimulatorPage />} />
-                    <Route path="/users" element={<UsersPage />} />
-                    <Route path="/reports" element={<ReportsPage />} />
+                    <Route path="/results" element={<FinalResultsPage />} />
+                    <Route path="/ranks" element={<RankListPage />} />
+
+                    {/* Staff Roles (Faculty, HOD, Registrar, Super Admin) */}
+                    <Route element={<ProtectedRoute allowedRoles={['super_admin', 'registrar', 'hod', 'faculty']} />}>
+                      <Route path="/gradebook" element={<GradebookPage />} />
+                      <Route path="/students" element={<StudentsPage />} />
+                    </Route>
+
+                    {/* Academic Governance (HOD, Registrar, Super Admin) */}
+                    <Route element={<ProtectedRoute allowedRoles={['super_admin', 'registrar', 'hod']} />}>
+                      <Route path="/academic-structure" element={<AcademicStructurePage />} />
+                      <Route path="/regulations" element={<RegulationsPage />} />
+                      <Route path="/regulations/:regulationId" element={<RegulationDetailPage />} />
+                      <Route path="/rule-engine" element={<RuleEnginePage />} />
+                      <Route path="/simulator" element={<SimulatorPage />} />
+                      <Route path="/reports" element={<ReportsPage />} />
+                    </Route>
+
+                    {/* User & Faculty Administration (Super Admin, Registrar, HOD) */}
+                    <Route element={<ProtectedRoute allowedRoles={['super_admin', 'registrar', 'hod']} />}>
+                      <Route path="/users" element={<UsersPage />} />
+                    </Route>
+
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Route>
                 </Route>

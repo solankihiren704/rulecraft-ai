@@ -12,6 +12,7 @@ export function toStudent(row: PrismaStudent): Student {
     year: row.year,
     status: row.status,
     gpa: row.gpa,
+    attendance: row.attendance ?? 85,
     enrollDate: toDateOnly(row.enrollDate),
   }
 }
